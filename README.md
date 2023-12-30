@@ -50,12 +50,12 @@ Beep Inc: 1 times
 Ghost Autonomy Inc: 1 times
 
 ## Dependencies
-Python 3.x
+Python 3.10.1 and beyond
 requests
 BeautifulSoup
 
 ## Acknowledgments
-1. California DMV for the data source.
+1. California DMV for the data source: https://www.dmv.ca.gov/portal/vehicle-industry-services/autonomous-vehicles/autonomous-vehicle-collision-reports/
 2. Beautiful Soup for web scraping.
 3. SQLite for the database.
 
