@@ -1,4 +1,4 @@
-# Web Scraping and Text Extraction
+# Autonomous Vehicle Accident Tracking
 
 This project demonstrates web scraping and text extraction from a webpage using Python. It fetches data from the California Department of Motor Vehicles (DMV) website, extracts specific text patterns, and calculates the frequency of autonomous vehicle accidents by company.
 
