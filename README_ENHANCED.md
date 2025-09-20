@@ -1,23 +1,14 @@
-# 🚗 AVAT - Autonomous Vehicle Accident Tracker
+# 🚗 AVAT - Autonomous Vehicle Accident Tracker 2.0
 
-[![Deploy to GitHub Pages](https://github.com/vikyath/AVAT/actions/workflows/deploy.yml/badge.svg)](https://github.com/vikyath/AVAT/actions/workflows/deploy.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![React](https://img.shields.io/badge/React-18.2.0-blue.svg)](https://reactjs.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.104.1-green.svg)](https://fastapi.tiangolo.com/)
-
-> **Professional Tesla-Inspired AV Accident Analysis Platform**
+> **Tesla-Inspired Professional AV Accident Analysis Platform**
 
 A comprehensive, real-time autonomous vehicle accident analysis platform featuring advanced data visualization, geospatial mapping, and predictive analytics. Built with modern technologies and a sleek Tesla-inspired dark UI.
 
-## 🌟 Live Demo
-
-🔗 **[View Live Application](https://vikyath.github.io/AVAT)**
-
-## ✨ Features
+## 🌟 Features
 
 ### 📊 **Advanced Analytics Dashboard**
 - Real-time accident metrics and KPIs
-- Company performance comparisons  
+- Company performance comparisons
 - Vehicle make/model safety analysis
 - Temporal pattern recognition
 - Risk factor assessment
@@ -31,7 +22,7 @@ A comprehensive, real-time autonomous vehicle accident analysis platform featuri
 
 ### 🔍 **Deep Data Analysis**
 - **Vehicle Analysis**: Make/model accident rates, damage patterns
-- **Location Intelligence**: City type risk assessment, intersection analysis  
+- **Location Intelligence**: City type risk assessment, intersection analysis
 - **Temporal Patterns**: Hourly, daily, seasonal trends
 - **Damage Assessment**: Impact location analysis, severity scoring
 
@@ -41,6 +32,13 @@ A comprehensive, real-time autonomous vehicle accident analysis platform featuri
 - Minimalist design principles
 - Responsive mobile-first layout
 - Real-time data updates
+
+### ⚡ **High-Performance Backend**
+- FastAPI with async/await support
+- Real-time WebSocket connections
+- Redis caching for optimal performance
+- PostgreSQL with PostGIS for geospatial queries
+- Background task processing
 
 ## 🏗️ Architecture
 
@@ -58,49 +56,69 @@ A comprehensive, real-time autonomous vehicle accident analysis platform featuri
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 18+
 - Python 3.9+
-- Redis Server (optional, for caching)
+- Node.js 16+
+- Redis Server
+- PostgreSQL (optional, SQLite for development)
 
-### 1. Clone Repository
-```bash
-git clone https://github.com/vikyath/AVAT.git
-cd AVAT
-```
-
-### 2. Backend Setup
+### Backend Setup
 ```bash
 # Install Python dependencies
 pip install -r requirements.txt
 
-# Run database migrations
-cd backend
-python -c "from utils.migrations import run_migrations; run_migrations()"
+# Run enhanced data extraction
+python enhanced_data_pipeline.py
 
 # Start FastAPI server
+cd backend
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### 3. Frontend Setup
+### Frontend Setup
 ```bash
 # Install Node.js dependencies
 cd frontend
 npm install
 
 # Set environment variables
-cp .env.example .env
-# Edit .env with your Mapbox token
+echo "REACT_APP_MAPBOX_TOKEN=your_mapbox_token_here" > .env
 
 # Start development server
 npm start
 ```
 
-### 4. Access Application
+### Access the Application
 - **Frontend**: http://localhost:3000
-- **API Documentation**: http://localhost:8000/docs
+- **API Documentation**: http://localhost:8000/api/docs
 - **WebSocket**: ws://localhost:8000/ws
 
-## 📊 Key Insights Discovered
+## 📊 Data Analysis Capabilities
+
+### 🚙 **Vehicle Safety Analysis**
+- **Make/Model Performance**: Accident rates per mile driven
+- **Damage Patterns**: Most common impact locations
+- **Safety Scoring**: Comprehensive safety ratings
+- **Comparative Analysis**: Cross-manufacturer comparisons
+
+### 🏙️ **Geographic Intelligence**
+- **City Type Analysis**: Urban vs Suburban vs Rural accident patterns
+- **Intersection Hotspots**: Most dangerous intersection types
+- **Risk Mapping**: Geographic risk assessment
+- **Population-Adjusted Rates**: Per-capita accident analysis
+
+### ⏰ **Temporal Pattern Recognition**
+- **Peak Hours**: Rush hour vs off-peak analysis
+- **Seasonal Trends**: Weather impact assessment
+- **Day-of-Week Patterns**: Weekday vs weekend analysis
+- **Long-term Trends**: Year-over-year comparisons
+
+### 💥 **Damage Assessment**
+- **Impact Location Analysis**: Front, rear, side damage patterns
+- **Severity Scoring**: Minor to total loss classification
+- **Casualty Correlation**: Injury rates by damage type
+- **Scenario Analysis**: Common accident scenarios
+
+## 🎯 Key Insights Discovered
 
 Based on enhanced data analysis, the platform reveals:
 
@@ -142,51 +160,38 @@ Based on enhanced data analysis, the platform reveals:
 - **NLTK/spaCy** for text processing
 - **Scikit-learn** for pattern recognition
 
-## 📱 Deployment
+## 📱 Mobile Responsive
 
-### GitHub Pages (Frontend Only)
-```bash
-# Build and deploy to GitHub Pages
-cd frontend
-npm run deploy
-```
+The platform is fully responsive and optimized for:
+- **Desktop**: Full-featured dashboard experience
+- **Tablet**: Touch-optimized map interactions
+- **Mobile**: Essential metrics and simplified navigation
 
-### Full Stack Deployment
-- **Frontend**: Vercel, Netlify, or GitHub Pages
-- **Backend**: Heroku, Railway, or DigitalOcean
-- **Database**: PostgreSQL on Railway or Supabase
+## 🔒 Security & Privacy
 
-## 🔧 Development
+- **Data Anonymization**: Personal information removed
+- **HTTPS Encryption**: All data transmission secured
+- **API Rate Limiting**: Prevents abuse
+- **Input Validation**: Comprehensive data sanitization
 
-### Available Scripts
+## 🌍 Environmental Impact
 
-**Frontend:**
-```bash
-npm start          # Start development server
-npm run build      # Build for production
-npm run test       # Run tests
-npm run lint       # Run linter
-npm run deploy     # Deploy to GitHub Pages
-```
-
-**Backend:**
-```bash
-uvicorn main:app --reload    # Start development server
-python -m pytest            # Run tests
-python utils/migrations.py  # Run migrations
-```
+By analyzing AV accident patterns, this platform contributes to:
+- **Safer Autonomous Vehicles**: Data-driven safety improvements
+- **Reduced Traffic Accidents**: Pattern identification for prevention
+- **Smart City Planning**: Infrastructure optimization insights
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+We welcome contributions! Please see our contributing guidelines for:
+- Code style and standards
+- Testing requirements
+- Pull request process
+- Issue reporting
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## 🙏 Acknowledgments
 
@@ -198,12 +203,12 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📞 Support
 
 For support and questions:
-- **Documentation**: [GitHub Wiki](https://github.com/vikyath/AVAT/wiki)
-- **Issues**: [GitHub Issues](https://github.com/vikyath/AVAT/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/vikyath/AVAT/discussions)
+- **Documentation**: [Link to docs]
+- **Issues**: GitHub Issues
+- **Email**: support@avat-platform.com
 
 ---
 
-**Built with ❤️ by [Vikyath Naradasi](https://github.com/vikyath)**
+**Built with ❤️ by Vikyath Naradasi**
 
 *Transforming autonomous vehicle safety through data-driven insights*

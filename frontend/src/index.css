@@ -1,0 +1,229 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* Tesla-inspired global styles */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+:root {
+  --tesla-black: #000000;
+  --tesla-dark-gray: #171717;
+  --tesla-medium-gray: #393c41;
+  --tesla-light-gray: #5c5e62;
+  --tesla-white: #ffffff;
+  --tesla-red: #cc0000;
+  --tesla-blue: #3498db;
+  --tesla-green: #00ff41;
+  --tesla-accent: #1e40af;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--tesla-black);
+  color: var(--tesla-white);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--tesla-dark-gray);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--tesla-medium-gray);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--tesla-light-gray);
+}
+
+/* Tesla-style button components */
+@layer components {
+  .btn-tesla {
+    @apply px-6 py-3 rounded-none border-2 border-white bg-transparent text-white font-medium transition-all duration-300 hover:bg-white hover:text-black focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-black;
+  }
+
+  .btn-tesla-primary {
+    @apply px-6 py-3 rounded-none bg-tesla-blue text-white font-medium transition-all duration-300 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-tesla-blue focus:ring-offset-2 focus:ring-offset-black;
+  }
+
+  .btn-tesla-danger {
+    @apply px-6 py-3 rounded-none bg-tesla-red text-white font-medium transition-all duration-300 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-tesla-red focus:ring-offset-2 focus:ring-offset-black;
+  }
+
+  .card-tesla {
+    @apply bg-dark-surface border border-dark-border rounded-lg p-6 shadow-tesla backdrop-blur-sm;
+  }
+
+  .glass-effect {
+    @apply bg-black/20 backdrop-blur-md border border-white/10;
+  }
+
+  .text-gradient {
+    @apply bg-gradient-to-r from-tesla-blue to-tesla-green bg-clip-text text-transparent;
+  }
+
+  .glow-effect {
+    @apply shadow-glow-green animate-glow;
+  }
+
+  .loading-shimmer {
+    @apply animate-pulse bg-gradient-to-r from-dark-surface via-dark-card to-dark-surface bg-[length:200%_100%];
+  }
+}
+
+/* Map styles */
+.mapboxgl-popup {
+  max-width: 300px;
+}
+
+.mapboxgl-popup-content {
+  background-color: var(--tesla-dark-gray) !important;
+  color: var(--tesla-white) !important;
+  border-radius: 8px !important;
+  padding: 16px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
+}
+
+.mapboxgl-popup-anchor-bottom .mapboxgl-popup-tip {
+  border-top-color: var(--tesla-dark-gray) !important;
+}
+
+.mapboxgl-popup-anchor-top .mapboxgl-popup-tip {
+  border-bottom-color: var(--tesla-dark-gray) !important;
+}
+
+.mapboxgl-popup-anchor-left .mapboxgl-popup-tip {
+  border-right-color: var(--tesla-dark-gray) !important;
+}
+
+.mapboxgl-popup-anchor-right .mapboxgl-popup-tip {
+  border-left-color: var(--tesla-dark-gray) !important;
+}
+
+.mapboxgl-popup-close-button {
+  color: var(--tesla-white) !important;
+  font-size: 24px !important;
+  padding: 8px !important;
+}
+
+.mapboxgl-popup-close-button:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border-radius: 4px !important;
+}
+
+/* Chart styles */
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line {
+  stroke: var(--tesla-medium-gray) !important;
+  stroke-opacity: 0.3 !important;
+}
+
+.recharts-text {
+  fill: var(--tesla-white) !important;
+}
+
+.recharts-legend-item-text {
+  color: var(--tesla-white) !important;
+}
+
+/* Custom animations */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.float-animation {
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes slideInFromLeft {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.slide-in-left {
+  animation: slideInFromLeft 0.5s ease-out;
+}
+
+@keyframes slideInFromRight {
+  0% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.slide-in-right {
+  animation: slideInFromRight 0.5s ease-out;
+}
+
+/* Utility classes */
+.text-shadow {
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.border-gradient {
+  border-image: linear-gradient(45deg, var(--tesla-blue), var(--tesla-green)) 1;
+}
+
+/* Loading states */
+.skeleton {
+  @apply animate-pulse bg-dark-card rounded;
+}
+
+.skeleton-text {
+  @apply h-4 bg-dark-card rounded animate-pulse;
+}
+
+.skeleton-avatar {
+  @apply w-12 h-12 bg-dark-card rounded-full animate-pulse;
+}
+
+/* Focus styles for accessibility */
+*:focus-visible {
+  outline: 2px solid var(--tesla-blue);
+  outline-offset: 2px;
+}
+
+/* Print styles */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  
+  .no-print {
+    display: none !important;
+  }
+}
