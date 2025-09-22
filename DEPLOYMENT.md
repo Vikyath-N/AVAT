@@ -55,7 +55,47 @@ The application is automatically deployed to GitHub Pages via GitHub Actions usi
 - `MAPBOX_TOKEN`: Mapbox public token
 - `PROD_API_BASE_URL`: e.g. https://api.avat.vikyath.dev/api/v1
 - `PROD_WS_URL`: e.g. wss://api.avat.vikyath.dev/ws
-- `GITHUB_TOKEN`: Automatically provided by GitHub
+- `GITHUB_TOKEN`: Automatically provided by GitHub (no action needed)
+
+#### GitHub Actions Details
+
+- Workflow: `.github/workflows/deploy.yml`
+- Tooling: PNPM + `react-scripts` build
+- Permissions: requires `permissions: contents: write` at top-level to push to `gh-pages` branch
+- Required files: `frontend/public/index.html` must be present in repo
+- Build env injected via `env` block in the Build step (uses GitHub Secrets)
+
+Key steps:
+```yaml
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Install Dependencies 🔧
+        working-directory: ./frontend
+        run: pnpm install --no-frozen-lockfile
+      - name: Build Application 🏗️
+        working-directory: ./frontend
+        run: pnpm run build
+        env:
+          REACT_APP_API_BASE_URL: ${{ secrets.PROD_API_BASE_URL }}
+          REACT_APP_WS_URL: ${{ secrets.PROD_WS_URL }}
+          REACT_APP_MAPBOX_TOKEN: ${{ secrets.MAPBOX_TOKEN }}
+          CI: false
+      - name: Deploy to GitHub Pages 🚀
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./frontend/build
+          cname: avat.vikyath.dev
+```
 
 ### 🔄 Manual Deployment
 
@@ -93,6 +133,26 @@ vercel --prod
 # Database to Supabase
 # Update connection strings
 ```
+
+## 🔁 Backend Deployment (Local/Dev)
+
+The backend is not deployed via Pages. Run locally or deploy to a host of your choice.
+
+```bash
+# Install deps
+pip install -r requirements.txt
+
+# Run migrations
+cd backend
+python -c "from utils.migrations import run_migrations; run_migrations()"
+
+# Start API with reload
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+```
+
+Scheduler: APScheduler starts automatically at app startup and schedules DMV sync jobs (03:00/03:10 UTC by default).
+
+Health endpoint exposes last scrape run: `GET /api/v1/health`.
 
 ## 📊 Performance Optimization
 
@@ -186,6 +246,11 @@ npm install
 npm ls
 ```
 
+Additional CI gotchas:
+- `ERR_PNPM_NO_LOCKFILE`: Use `pnpm install --no-frozen-lockfile` in CI.
+- Missing `public/index.html`: Ensure `frontend/public/index.html` is committed and not ignored. `.gitignore` should allow `frontend/public/**`.
+- gh-pages push error (exit code 128): Ensure `permissions: contents: write` is set in workflow.
+
 #### 3. Deployment Issues
 ```bash
 # Check GitHub Actions logs
@@ -204,5 +269,5 @@ For deployment issues:
 
 ---
 
-**Last Updated**: December 2024
-**Version**: 2.0.0
+**Last Updated**: September 2025
+**Version**: 2.0.1

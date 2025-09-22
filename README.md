@@ -1,6 +1,6 @@
 # 🚗 AVAT - Autonomous Vehicle Accident Tracker
 
-[![Deploy to GitHub Pages](https://github.com/vikyath/AVAT/actions/workflows/deploy.yml/badge.svg)](https://github.com/vikyath/AVAT/actions/workflows/deploy.yml)
+[![Deploy to GitHub Pages](https://github.com/Vikyath-N/AVAT/actions/workflows/deploy.yml/badge.svg)](https://github.com/Vikyath-N/AVAT/actions/workflows/deploy.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![React](https://img.shields.io/badge/React-18.2.0-blue.svg)](https://reactjs.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.104.1-green.svg)](https://fastapi.tiangolo.com/)
@@ -11,7 +11,7 @@ A comprehensive, real-time autonomous vehicle accident analysis platform featuri
 
 ## 🌟 Live Demo
 
-🔗 **[View Live Application](https://vikyath.github.io/AVAT)**
+🔗 **[View Live Application](https://vikyath-n.github.io/AVAT/)**
 
 ## ✨ Features
 
@@ -45,15 +45,79 @@ A comprehensive, real-time autonomous vehicle accident analysis platform featuri
 ## 🏗️ Architecture
 
 ```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   Frontend      │    │   Backend API    │    │   Data Layer    │
-│                 │    │                  │    │                 │
-│ • React 18 + TS │◀──▶│ • FastAPI        │◀──▶│ • PostgreSQL    │
-│ • Mapbox GL     │    │ • WebSockets     │    │ • Redis Cache   │
-│ • Framer Motion │    │ • Background     │    │ • Enhanced      │
-│ • Recharts      │    │   Tasks          │    │   Scraper       │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
+┌─────────────────┐    ┌──────────────────┐    ┌──────────────────────────┐
+│   Frontend      │    │   Backend API    │    │        Data Layer        │
+│                 │    │                  │    │                          │
+│ • React 18 + TS │◀──▶│ • FastAPI        │◀──▶│ • SQLite (default)       │
+│ • Mapbox GL     │    │ • WebSockets     │    │ • Migrations (custom)    │
+│ • Framer Motion │    │ • APScheduler    │    │ • PDF + DMV index tables │
+│ • Recharts      │    │ • In-memory cache│    │ • Optional: PostgreSQL   │
+└─────────────────┘    └──────────────────┘    └──────────────────────────┘
 ```
+
+### 🧭 System Overview
+
+- **DMV Scraping Pipeline**
+  - Phase 1: Index-only sync inserts normalized records into `dmv_reports` (idempotent upsert).
+  - Phase 2: PDF download and parsing persists normalized `accidents` and links to source via `source_report_id`.
+  - Phase 3: Daily scheduling via APScheduler, health/metrics exposure, and run history in `dmv_scrape_runs`.
+- **Real-time UX**: WebSocket heartbeat and broadcast for new data, frontend falls back to demo mode if API is unavailable.
+- **Caching**: Lightweight in-memory cache service for hot API responses.
+
+### 🔌 API Overview
+
+- `GET /api/v1/health` – service status, DB counts, last scraper run.
+- `GET /api/v1/stats` – system stats for UI overview.
+- `GET /api/v1/accidents` – paginated accidents with filters; map data at `/api/v1/accidents/map/data`.
+- `GET /api/v1/analytics/*` – overview, temporal trends, patterns, performance.
+- Reports (DMV):
+  - `GET /api/v1/reports/latest?limit=50`
+  - `GET /api/v1/reports/summary`
+  - `GET /api/v1/reports/runs?limit=20`
+  - `POST /api/v1/reports/sync-index`
+  - `POST /api/v1/reports/sync-pdfs?limit=10`
+
+### ⏰ Scheduler & Background Jobs
+
+- APScheduler (AsyncIO) starts in app lifespan:
+  - 03:00 – `DMVScraperService.sync_index()`
+  - 03:10 – `DMVScraperService.sync_pdfs(limit=25)`
+- Background tasks: analytics cache refresh + WebSocket heartbeat.
+
+### 🗃️ Database & Migrations
+
+- SQLite by default (`enhanced_accidents.db`).
+- Custom migrations (`backend/utils/migrations.py`):
+  - 004 `dmv_reports`, 005 `dmv_scrape_runs`, 006 add source columns to `accidents`, 007 `dmv_pdf_files`.
+- Run all pending migrations:
+  ```bash
+  cd backend
+  python -c "from utils.migrations import run_migrations; run_migrations()"
+  ```
+
+### 🧰 Scripts
+
+- Scraper:
+  - `scripts/scrape/scan-index.sh` – dry-run list.
+  - `scripts/scrape/sync-index.sh` – upsert index.
+  - `scripts/scrape/sync-pdfs.sh` – download + parse PDFs.
+  - `scripts/scrape/status.sh` – summary + runs.
+  - `scripts/scrape/full-sync.sh` – index then PDFs.
+- Tests:
+  - `scripts/test/unit.sh` and `scripts/test/integration.sh`.
+
+### ⚙️ Configuration
+
+Frontend `.env`:
+```bash
+REACT_APP_API_BASE_URL=http://localhost:8000/api/v1
+REACT_APP_WS_URL=ws://localhost:8000/ws
+REACT_APP_MAPBOX_TOKEN=pk.your_mapbox_public_token
+REACT_APP_DEMO_MODE=false
+```
+Notes:
+- Frontend uses a hybrid data service: if API isn't reachable or demo mode is enabled, it falls back to mock data.
+- Production values are injected via GitHub Secrets during CI (see DEPLOYMENT.md).
 
 ## 🚀 Quick Start
 
@@ -122,39 +186,23 @@ Based on enhanced data analysis, the platform reveals:
 ## 🛠️ Technology Stack
 
 ### Frontend
-- **React 18** with TypeScript
-- **Mapbox GL JS** for interactive mapping
-- **Framer Motion** for smooth animations
-- **Recharts** for data visualization
-- **Tailwind CSS** for styling
-- **React Query** for data fetching
+- React 18 + TypeScript
+- Mapbox GL JS, Recharts, Framer Motion, Tailwind CSS
+- Axios, React Router, Zustand
 
 ### Backend
-- **FastAPI** with Python 3.9+
-- **SQLite/PostgreSQL** with PostGIS
-- **Redis** for caching and real-time features
-- **WebSockets** for live updates
-- **Pandas/GeoPandas** for data processing
+- FastAPI (Python 3.9+), WebSockets
+- SQLite (default) with custom migration system
+- APScheduler for cron jobs
+- In-memory cache service
 
 ### Data Processing
-- **BeautifulSoup** for web scraping
-- **Geopy** for geocoding
-- **NLTK/spaCy** for text processing
-- **Scikit-learn** for pattern recognition
+- BeautifulSoup (HTML), pdfplumber (PDF), geopy (geocoding)
+- EnhancedDataExtractor from `enhanced_data_pipeline.py`
 
 ## 📱 Deployment
 
-### GitHub Pages (Frontend Only)
-```bash
-# Build and deploy to GitHub Pages
-cd frontend
-npm run deploy
-```
-
-### Full Stack Deployment
-- **Frontend**: Vercel, Netlify, or GitHub Pages
-- **Backend**: Heroku, Railway, or DigitalOcean
-- **Database**: PostgreSQL on Railway or Supabase
+- CI/CD to GitHub Pages using PNPM. See `DEPLOYMENT.md` for details, secrets, and troubleshooting (lockfile, permissions, `public/index.html`).
 
 ## 🔧 Development
 
@@ -198,9 +246,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📞 Support
 
 For support and questions:
-- **Documentation**: [GitHub Wiki](https://github.com/vikyath/AVAT/wiki)
-- **Issues**: [GitHub Issues](https://github.com/vikyath/AVAT/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/vikyath/AVAT/discussions)
+- **Documentation**: [GitHub Wiki](https://github.com/Vikyath-N/AVAT/wiki)
+- **Issues**: [GitHub Issues](https://github.com/Vikyath-N/AVAT/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/Vikyath-N/AVAT/discussions)
 
 ---
 
