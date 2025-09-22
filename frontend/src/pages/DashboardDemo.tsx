@@ -26,7 +26,6 @@ import {
   AreaChart
 } from 'recharts';
 import { UserPreferences } from '../types';
-import { dataService, getDemoInfo } from '../services/dataService';
 
 interface DashboardProps {
   preferences: UserPreferences;
@@ -34,95 +33,53 @@ interface DashboardProps {
 
 const Dashboard: React.FC<DashboardProps> = ({ preferences }) => {
   const [selectedTimeframe, setSelectedTimeframe] = useState('30d');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [realTimeData, setRealTimeData] = useState({
-    totalAccidents: 0,
-    newToday: 0,
-    trendPercentage: 0,
+    totalAccidents: 134,
+    newToday: 3,
+    trendPercentage: -12.3,
     lastUpdate: new Date()
   });
-  const [dashboardData, setDashboardData] = useState<any>(null);
 
-  // Load dashboard data
-  useEffect(() => {
-    const loadDashboardData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        // Get system stats and analytics
-        const [statsResponse, analyticsResponse] = await Promise.all([
-          dataService.getSystemStats(),
-          dataService.getAnalytics()
-        ]);
-
-        const stats = statsResponse.data;
-        const analytics = analyticsResponse.data;
-
-        setRealTimeData({
-          totalAccidents: stats.total_accidents || 0,
-          newToday: 5, // Would be calculated from recent data
-          trendPercentage: analytics.summary?.trend_percentage || -12.3,
-          lastUpdate: new Date()
-        });
-
-        setDashboardData({
-          stats,
-          analytics,
-          demoInfo: getDemoInfo()
-        });
-
-      } catch (err) {
-        console.error('Dashboard loading error:', err);
-        setError('Failed to load dashboard data');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadDashboardData();
-  }, [selectedTimeframe]);
-
-  // Mock data - in real app, this would come from API
+  // Demo data for GitHub Pages
   const companyData = [
-    { name: 'Waymo', accidents: 49, color: '#3498db', change: -8.2 },
-    { name: 'Cruise', accidents: 41, color: '#e74c3c', change: -15.1 },
-    { name: 'Tesla', accidents: 23, color: '#f39c12', change: +5.3 },
-    { name: 'Zoox', accidents: 15, color: '#9b59b6', change: -3.7 },
-    { name: 'Apple', accidents: 6, color: '#1abc9c', change: -25.0 }
+    { name: 'Waymo', accidents: 49, change: -8.2 },
+    { name: 'Cruise', accidents: 41, change: -15.1 },
+    { name: 'Tesla', accidents: 23, change: +5.3 },
+    { name: 'Zoox', accidents: 15, change: -3.7 },
+    { name: 'Apple', accidents: 6, change: -25.0 }
   ];
 
   const cityData = [
-    { name: 'San Francisco', accidents: 89, type: 'urban' },
-    { name: 'Mountain View', accidents: 67, type: 'suburban' },
-    { name: 'Palo Alto', accidents: 45, type: 'suburban' },
-    { name: 'Fremont', accidents: 34, type: 'suburban' },
-    { name: 'San Jose', accidents: 28, type: 'urban' }
+    { name: 'San Francisco', accidents: 45, type: 'urban' },
+    { name: 'Mountain View', accidents: 32, type: 'suburban' },
+    { name: 'Palo Alto', accidents: 18, type: 'suburban' },
+    { name: 'Fremont', accidents: 15, type: 'suburban' },
+    { name: 'San Jose', accidents: 12, type: 'urban' },
+    { name: 'Cupertino', accidents: 8, type: 'suburban' }
   ];
 
   const intersectionData = [
-    { type: 'Traffic Light', count: 156, severity: 'moderate' },
-    { type: 'Stop Sign', count: 89, severity: 'minor' },
-    { type: 'Roundabout', count: 23, severity: 'severe' },
-    { type: 'Highway Merge', count: 67, severity: 'severe' },
-    { type: 'Residential', count: 134, severity: 'minor' }
+    { type: 'Traffic Light', count: 67, severity: 'moderate' },
+    { type: 'Stop Sign', count: 34, severity: 'minor' },
+    { type: 'Roundabout', count: 12, severity: 'severe' },
+    { type: 'Highway Merge', count: 15, severity: 'severe' },
+    { type: 'Residential', count: 6, severity: 'minor' }
   ];
 
   const damageLocationData = [
-    { location: 'Front', count: 234, percentage: 42 },
-    { location: 'Rear', count: 156, percentage: 28 },
-    { location: 'Side', count: 89, percentage: 16 },
-    { location: 'Multiple', count: 78, percentage: 14 }
+    { location: 'Front', count: 56, percentage: 42 },
+    { location: 'Rear', count: 37, percentage: 28 },
+    { location: 'Side', count: 21, percentage: 16 },
+    { location: 'Multiple', count: 20, percentage: 14 }
   ];
 
   const timeSeriesData = [
-    { month: 'Jan', accidents: 45, waymo: 15, cruise: 12, tesla: 8, others: 10 },
-    { month: 'Feb', accidents: 52, waymo: 18, cruise: 14, tesla: 9, others: 11 },
-    { month: 'Mar', accidents: 48, waymo: 16, cruise: 13, tesla: 8, others: 11 },
-    { month: 'Apr', accidents: 61, waymo: 21, cruise: 16, tesla: 11, others: 13 },
-    { month: 'May', accidents: 55, waymo: 19, cruise: 15, tesla: 10, others: 11 },
-    { month: 'Jun', accidents: 67, waymo: 23, cruise: 18, tesla: 12, others: 14 }
+    { month: 'Jul', accidents: 18, waymo: 6, cruise: 5, tesla: 3, others: 4 },
+    { month: 'Aug', accidents: 22, waymo: 8, cruise: 6, tesla: 4, others: 4 },
+    { month: 'Sep', accidents: 19, waymo: 7, cruise: 5, tesla: 3, others: 4 },
+    { month: 'Oct', accidents: 25, waymo: 9, cruise: 7, tesla: 5, others: 4 },
+    { month: 'Nov', accidents: 23, waymo: 8, cruise: 6, tesla: 4, others: 5 },
+    { month: 'Dec', accidents: 27, waymo: 11, cruise: 8, tesla: 4, others: 4 }
   ];
 
   const keyMetrics = [
@@ -136,7 +93,7 @@ const Dashboard: React.FC<DashboardProps> = ({ preferences }) => {
     },
     {
       title: 'Active Companies',
-      value: '12',
+      value: '5',
       change: +8.3,
       icon: Car,
       color: 'text-tesla-blue',
@@ -144,7 +101,7 @@ const Dashboard: React.FC<DashboardProps> = ({ preferences }) => {
     },
     {
       title: 'Cities Monitored',
-      value: '45',
+      value: '6',
       change: +2.1,
       icon: MapPin,
       color: 'text-tesla-green',
@@ -152,7 +109,7 @@ const Dashboard: React.FC<DashboardProps> = ({ preferences }) => {
     },
     {
       title: 'Avg. Severity Score',
-      value: '2.3/5',
+      value: '2.1/5',
       change: -5.8,
       icon: Shield,
       color: 'text-accent-warning',
@@ -189,57 +146,25 @@ const Dashboard: React.FC<DashboardProps> = ({ preferences }) => {
     visible: { opacity: 1, y: 0 }
   };
 
-  // Show loading state
-  if (loading) {
-    return (
-      <div className="p-6 h-full bg-dark-bg flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-tesla-blue mx-auto mb-4"></div>
-          <p className="text-dark-muted">Loading dashboard data...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Show error state
-  if (error) {
-    return (
-      <div className="p-6 h-full bg-dark-bg flex items-center justify-center">
-        <div className="text-center">
-          <AlertTriangle className="w-12 h-12 text-accent-danger mx-auto mb-4" />
-          <p className="text-accent-danger mb-2">Dashboard Error</p>
-          <p className="text-dark-muted text-sm">{error}</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="btn-tesla-primary mt-4"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="p-6 space-y-6 overflow-y-auto h-full bg-dark-bg">
       {/* Demo Banner */}
-      {dashboardData?.demoInfo?.isDemo && (
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-tesla-blue/20 border border-tesla-blue/30 rounded-lg p-4 mb-6"
-        >
-          <div className="flex items-center space-x-3">
-            <Zap className="w-5 h-5 text-tesla-blue" />
-            <div>
-              <p className="text-tesla-blue font-medium">Demo Mode Active</p>
-              <p className="text-sm text-dark-muted">
-                {dashboardData.demoInfo.message} • Data Source: {dashboardData.demoInfo.dataSource}
-              </p>
-            </div>
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-dark-card border border-dark-border rounded-lg p-4"
+      >
+        <div className="flex items-center space-x-3">
+          <Zap className="w-5 h-5 text-tesla-blue" />
+          <div>
+            <p className="text-tesla-blue font-medium">🚀 AVAT Demo Platform</p>
+            <p className="text-sm text-dark-muted">
+              Showcasing Tesla-inspired UI with California AV accident analysis • Using sample data for demonstration
+            </p>
           </div>
-        </motion.div>
-      )}
+        </div>
+      </motion.div>
+
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -247,7 +172,7 @@ const Dashboard: React.FC<DashboardProps> = ({ preferences }) => {
         className="flex flex-col sm:flex-row sm:items-center sm:justify-between"
       >
         <div>
-          <h1 className="text-3xl font-bold text-gradient mb-2">
+          <h1 className="text-3xl font-bold mb-2">
             AV Accident Dashboard
           </h1>
           <p className="text-dark-muted">
@@ -290,14 +215,12 @@ const Dashboard: React.FC<DashboardProps> = ({ preferences }) => {
                     <Icon className={`w-6 h-6 ${metric.color}`} />
                   </div>
                   <div className="flex items-center space-x-1">
-                    {metric.change > 0 ? (
-                      <TrendingUp className="w-4 h-4 text-accent-success" />
+                  {metric.change > 0 ? (
+                      <TrendingUp className="w-4 h-4 text-white/80" />
                     ) : (
-                      <TrendingDown className="w-4 h-4 text-accent-danger" />
+                      <TrendingDown className="w-4 h-4 text-white/80" />
                     )}
-                    <span className={`text-sm font-medium ${
-                      metric.change > 0 ? 'text-accent-success' : 'text-accent-danger'
-                    }`}>
+                    <span className={`text-sm font-medium text-white/80`}>
                       {Math.abs(metric.change)}%
                     </span>
                   </div>
@@ -395,12 +318,12 @@ const Dashboard: React.FC<DashboardProps> = ({ preferences }) => {
               <select 
                 value={selectedTimeframe}
                 onChange={(e) => setSelectedTimeframe(e.target.value)}
-                className="bg-dark-card border border-dark-border rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-tesla-blue"
+                className="bg-dark-card border border-dark-border rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-white"
               >
                 <option value="7d">Last 7 days</option>
                 <option value="30d">Last 30 days</option>
                 <option value="3m">Last 3 months</option>
-                <option value="1y">Last year</option>
+                <option value="6m">Last 6 months</option>
               </select>
             </div>
           </div>
@@ -452,7 +375,7 @@ const Dashboard: React.FC<DashboardProps> = ({ preferences }) => {
             {cityData.map((city, index) => (
               <div key={city.name} className="flex items-center justify-between p-3 bg-dark-card/30 rounded-lg">
                 <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-tesla-blue/20 rounded-lg flex items-center justify-center text-sm font-bold">
+                  <div className="w-8 h-8 bg-tesla-blue/20 rounded-lg flex items-center justify-center text-sm font-bold text-tesla-blue">
                     #{index + 1}
                   </div>
                   <div>

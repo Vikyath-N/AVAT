@@ -35,7 +35,7 @@ const Navbar: React.FC<NavbarProps> = ({
     <motion.nav 
       initial={{ y: -60 }}
       animate={{ y: 0 }}
-      className="bg-dark-surface/80 backdrop-blur-md border-b border-dark-border px-4 py-3 flex items-center justify-between relative z-40"
+      className="bg-dark-surface border-b border-dark-border px-4 py-3 flex items-center justify-between relative z-40"
     >
       {/* Left Section */}
       <div className="flex items-center space-x-4">
@@ -49,7 +49,7 @@ const Navbar: React.FC<NavbarProps> = ({
 
         {/* Logo and Title */}
         <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 bg-gradient-to-br from-tesla-blue to-tesla-green rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center">
             <Zap className="w-5 h-5 text-white" />
           </div>
           <div className="hidden sm:block">
@@ -77,7 +77,7 @@ const Navbar: React.FC<NavbarProps> = ({
       <div className="flex items-center space-x-3">
         {/* Real-time Status */}
         <div className="hidden md:flex items-center space-x-2 px-3 py-1.5 bg-dark-card rounded-lg">
-          <div className="w-2 h-2 bg-tesla-green rounded-full animate-pulse" />
+          <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
           <span className="text-xs text-dark-muted">Live</span>
         </div>
 
@@ -88,7 +88,7 @@ const Navbar: React.FC<NavbarProps> = ({
           className="p-2 rounded-lg hover:bg-dark-card transition-colors relative"
           title="System Status"
         >
-          <Activity className="w-5 h-5 text-tesla-green" />
+          <Activity className="w-5 h-5 text-white" />
         </motion.button>
 
         {/* Notifications */}

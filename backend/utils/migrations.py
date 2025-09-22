@@ -108,6 +108,108 @@ class AddGeospatialIndexes(Migration):
         cursor.execute('DROP INDEX IF EXISTS idx_accidents_geo_bounds')
         cursor.execute('DROP INDEX IF EXISTS idx_accidents_company_geo')
 
+class CreateDmvReportsTable(Migration):
+    """Create table to store DMV index entries (reports)"""
+    def __init__(self):
+        super().__init__("004", "Create DMV reports and indexes")
+
+    def up(self, cursor: sqlite3.Cursor) -> None:
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS dmv_reports (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                manufacturer TEXT,
+                incident_date DATE,
+                year INTEGER,
+                display_text TEXT,
+                page_url TEXT,
+                pdf_url TEXT,
+                source_slug TEXT,
+                sequence_num INTEGER DEFAULT 1,
+                pdf_sha256 TEXT,
+                status TEXT DEFAULT 'new',
+                error_msg TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_dmv_reports_date ON dmv_reports(incident_date)')
+        cursor.execute('CREATE UNIQUE INDEX IF NOT EXISTS uq_dmv_reports_unique ON dmv_reports(manufacturer, incident_date, sequence_num)')
+
+    def down(self, cursor: sqlite3.Cursor) -> None:
+        cursor.execute('DROP TABLE IF EXISTS dmv_reports')
+
+class CreateDmvScrapeRunsTable(Migration):
+    """Create table to track scraper runs"""
+    def __init__(self):
+        super().__init__("005", "Create DMV scrape runs table")
+
+    def up(self, cursor: sqlite3.Cursor) -> None:
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS dmv_scrape_runs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                finished_at DATETIME,
+                status TEXT,
+                found INTEGER DEFAULT 0,
+                new INTEGER DEFAULT 0,
+                downloaded INTEGER DEFAULT 0,
+                parsed INTEGER DEFAULT 0,
+                errors INTEGER DEFAULT 0,
+                notes TEXT
+            )
+        ''')
+
+    def down(self, cursor: sqlite3.Cursor) -> None:
+        cursor.execute('DROP TABLE IF EXISTS dmv_scrape_runs')
+
+class AddAccidentsSourceColumns(Migration):
+    """Add source columns to accidents for DMV linkage"""
+    def __init__(self):
+        super().__init__("006", "Add source columns to accidents")
+
+    def up(self, cursor: sqlite3.Cursor) -> None:
+        # Add columns if they don't exist
+        cursor.execute('PRAGMA table_info(accidents)')
+        cols = {row[1] for row in cursor.fetchall()}
+        if 'source' not in cols:
+            cursor.execute("ALTER TABLE accidents ADD COLUMN source TEXT DEFAULT 'dmv_pdf'")
+        if 'source_report_id' not in cols:
+            cursor.execute('ALTER TABLE accidents ADD COLUMN source_report_id INTEGER')
+        if 'pdf_url' not in cols:
+            cursor.execute('ALTER TABLE accidents ADD COLUMN pdf_url TEXT')
+        if 'pdf_local_path' not in cols:
+            cursor.execute('ALTER TABLE accidents ADD COLUMN pdf_local_path TEXT')
+        # Optional index for source_report_id
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_accidents_source_report ON accidents(source_report_id)')
+
+    def down(self, cursor: sqlite3.Cursor) -> None:
+        # SQLite cannot drop columns easily; keep as no-op or recreate table in a real migration system
+        pass
+
+class CreateDmvPdfFilesTable(Migration):
+    """Table storing downloaded PDF metadata"""
+    def __init__(self):
+        super().__init__("007", "Create DMV PDF files table")
+
+    def up(self, cursor: sqlite3.Cursor) -> None:
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS dmv_pdf_files (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                report_id INTEGER,
+                local_path TEXT,
+                size_bytes INTEGER,
+                pages INTEGER,
+                sha256 TEXT,
+                downloaded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(sha256),
+                FOREIGN KEY(report_id) REFERENCES dmv_reports(id)
+            )
+        ''')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_dmv_pdf_report ON dmv_pdf_files(report_id)')
+
+    def down(self, cursor: sqlite3.Cursor) -> None:
+        cursor.execute('DROP TABLE IF EXISTS dmv_pdf_files')
+
 class MigrationManager:
     """Manages database migrations"""
     
@@ -115,7 +217,11 @@ class MigrationManager:
         self.migrations: List[Migration] = [
             CreateMigrationsTable(),
             CreateAccidentsTable(),
-            AddGeospatialIndexes()
+            AddGeospatialIndexes(),
+            CreateDmvReportsTable(),
+            CreateDmvScrapeRunsTable(),
+            AddAccidentsSourceColumns(),
+            CreateDmvPdfFilesTable()
         ]
     
     def get_applied_migrations(self) -> List[str]:

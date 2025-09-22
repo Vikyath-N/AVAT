@@ -11,8 +11,8 @@ import LoadingScreen from './components/common/LoadingScreen';
 import ErrorBoundary from './components/common/ErrorBoundary';
 
 // Pages
-import Dashboard from './pages/Dashboard';
-import MapView from './pages/MapView';
+import Dashboard from './pages/DashboardDemo';
+import MapView from './pages/MapViewDemo';
 import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
 
@@ -78,7 +78,7 @@ function App() {
             <div className="fixed inset-0 bg-mesh-pattern opacity-5 pointer-events-none" />
             
             {/* Main Layout */}
-            <div className="relative flex h-screen overflow-hidden">
+            <div className="relative flex min-h-screen overflow-hidden">
               {/* Sidebar */}
               <AnimatePresence>
                 {sidebarOpen && (
@@ -108,7 +108,7 @@ function App() {
                 />
 
                 {/* Page Content */}
-                <main className="flex-1 overflow-hidden">
+                <main className="flex-1 overflow-y-auto">
                   <Routes>
                     <Route path="/" element={<Navigate to="/dashboard" replace />} />
                     <Route 

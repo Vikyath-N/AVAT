@@ -15,11 +15,14 @@ from typing import List, Optional, Dict, Any
 import sqlite3
 import pandas as pd
 from contextlib import asynccontextmanager
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
 
 # Local imports
 from api.accidents import router as accidents_router
 from api.analytics import router as analytics_router
 from api.websocket import WebSocketManager
+from api import reports as reports_router
 from models.schemas import *
 from services.data_service import DataService
 from services.cache_service import CacheService
@@ -34,6 +37,7 @@ websocket_manager = WebSocketManager()
 # Services
 data_service = DataService()
 cache_service = CacheService()
+scheduler: Optional[AsyncIOScheduler] = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -47,12 +51,24 @@ async def lifespan(app: FastAPI):
     # Start background tasks
     asyncio.create_task(background_data_updater())
     asyncio.create_task(websocket_heartbeat())
+
+    # Start scheduler (Phase 3)
+    global scheduler
+    scheduler = AsyncIOScheduler()
+    from services.dmv_scraper_service import DMVScraperService
+    svc = DMVScraperService()
+    # Daily 03:00 scrape index then PDFs
+    scheduler.add_job(lambda: svc.sync_index(), CronTrigger(hour=3, minute=0))
+    scheduler.add_job(lambda: svc.sync_pdfs(limit=25), CronTrigger(hour=3, minute=10))
+    scheduler.start()
     
     yield
     
     # Cleanup
     logger.info("🛑 Shutting down AV Accident Analysis API")
     await cache_service.cleanup()
+    if scheduler:
+        scheduler.shutdown(wait=False)
 
 # Create FastAPI app
 app = FastAPI(
@@ -76,6 +92,7 @@ app.add_middleware(
 # Include routers
 app.include_router(accidents_router, prefix="/api/v1/accidents", tags=["accidents"])
 app.include_router(analytics_router, prefix="/api/v1/analytics", tags=["analytics"])
+app.include_router(reports_router.router, prefix="/api/v1/reports", tags=["reports"])
 
 # Static files (for serving React build in production)
 # app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -105,6 +122,19 @@ async def health_check():
         # Test cache connection
         cache_status = await cache_service.health_check()
         
+        # Scrape status
+        try:
+            with get_db_connection() as conn:
+                c = conn.cursor()
+                c.execute("SELECT * FROM dmv_scrape_runs ORDER BY id DESC LIMIT 1")
+                last_run = c.fetchone()
+                last_run_dict = None
+                if last_run:
+                    cols = [d[0] for d in c.description]
+                    last_run_dict = dict(zip(cols, last_run))
+        except Exception:
+            last_run_dict = None
+
         return {
             "status": "healthy",
             "timestamp": datetime.utcnow().isoformat(),
@@ -117,6 +147,9 @@ async def health_check():
             },
             "websocket": {
                 "active_connections": len(websocket_manager.active_connections)
+            },
+            "scraper": {
+                "last_run": last_run_dict
             }
         }
     except Exception as e:

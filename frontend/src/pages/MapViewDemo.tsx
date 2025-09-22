@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import Map, { 
   Marker, 
@@ -6,9 +6,7 @@ import Map, {
   NavigationControl, 
   FullscreenControl, 
   ScaleControl,
-  GeolocateControl,
-  Source,
-  Layer
+  GeolocateControl
 } from 'react-map-gl';
 import { 
   Filter, 
@@ -16,8 +14,7 @@ import {
   Car
 } from 'lucide-react';
 import { UserPreferences, AccidentRecord, MapViewport } from '../types';
-import { MapDataResponse } from '../services/api';
-import { dataService, getDemoInfo } from '../services/dataService';
+import { mockAccidents } from '../services/mockData';
 
 interface MapViewProps {
   preferences: UserPreferences;
@@ -33,42 +30,9 @@ const MapView: React.FC<MapViewProps> = ({ preferences }) => {
   const [selectedAccident, setSelectedAccident] = useState<AccidentRecord | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [mapStyle, setMapStyle] = useState('mapbox://styles/mapbox/dark-v11');
-  const [showHeatmap, setShowHeatmap] = useState(false);
   const [selectedCompanies, setSelectedCompanies] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [mapData, setMapData] = useState<MapDataResponse | null>(null);
 
-  // Load map data
-  useEffect(() => { 
-    const loadMapData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const response = await dataService.getMapData({
-          bounds_north: viewport.latitude + 0.1,
-          bounds_south: viewport.latitude - 0.1,
-          bounds_east: viewport.longitude + 0.1,
-          bounds_west: viewport.longitude - 0.1,
-          zoom_level: Math.round(viewport.zoom),
-          company: selectedCompanies.length > 0 ? selectedCompanies[0] : undefined
-        });
-
-        const normalized: MapDataResponse = ((response as any)?.data ?? response) as MapDataResponse;
-        setMapData(normalized);
-      } catch (err) {
-        console.error('Map data loading error:', err);
-        setError('Failed to load map data');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadMapData();
-  }, [viewport, selectedCompanies]);
-
-  const accidents = useMemo<AccidentRecord[]>(() => mapData?.accidents ?? [], [mapData]);
+  const accidents = mockAccidents;
 
   const mapStyles = [
     { id: 'dark', name: 'Dark', url: 'mapbox://styles/mapbox/dark-v11' },
@@ -89,30 +53,14 @@ const MapView: React.FC<MapViewProps> = ({ preferences }) => {
     }
   };
 
-  const filteredAccidents = useMemo<AccidentRecord[]>(() => {
+  const filteredAccidents = useMemo(() => {
     return accidents.filter((accident: AccidentRecord) => {
       if (selectedCompanies.length > 0 && accident.company && !selectedCompanies.includes(accident.company)) {
         return false;
       }
       return true;
     });
-  }, [selectedCompanies, accidents]);
-
-  const heatmapData = useMemo(() => {
-    return {
-      type: 'FeatureCollection',
-      features: filteredAccidents.map((accident: AccidentRecord) => ({
-        type: 'Feature',
-        properties: {
-          weight: (accident.casualties || 0) + 1
-        },
-        geometry: {
-          type: 'Point',
-          coordinates: [accident.location_lng || 0, accident.location_lat || 0]
-        }
-      }))
-    };
-  }, [filteredAccidents]);
+  }, [selectedCompanies]);
 
   const handleMarkerClick = useCallback((accident: AccidentRecord) => {
     setSelectedAccident(accident);
@@ -124,30 +72,6 @@ const MapView: React.FC<MapViewProps> = ({ preferences }) => {
     }));
   }, []);
 
-  // Handle loading and error states
-  if (loading && accidents.length === 0) {
-    return (
-      <div className="h-full flex items-center justify-center bg-dark-bg">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-tesla-blue mx-auto mb-4"></div>
-          <p className="text-dark-muted">Loading accident data...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="h-full flex items-center justify-center bg-dark-bg">
-        <div className="text-center">
-          <AlertCircle className="w-12 h-12 text-accent-danger mx-auto mb-4" />
-          <p className="text-accent-danger mb-2">Failed to load accident data</p>
-          <p className="text-dark-muted text-sm">{error}</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="h-full relative">
       {/* Map Container */}
@@ -156,7 +80,7 @@ const MapView: React.FC<MapViewProps> = ({ preferences }) => {
         onMove={evt => setViewport(evt.viewState)}
         style={{ width: '100%', height: '100%' }}
         mapStyle={mapStyle}
-        mapboxAccessToken={process.env.REACT_APP_MAPBOX_TOKEN || 'pk.your-token-here'}
+        mapboxAccessToken={process.env.REACT_APP_MAPBOX_TOKEN}
         attributionControl={false}
       >
         {/* Navigation Controls */}
@@ -165,39 +89,12 @@ const MapView: React.FC<MapViewProps> = ({ preferences }) => {
         <GeolocateControl position="top-right" />
         <ScaleControl position="bottom-right" />
 
-        {/* Heatmap Layer */}
-        {showHeatmap && (
-          <Source type="geojson" data={heatmapData}>
-            <Layer
-              id="heatmap"
-              type="heatmap"
-              paint={{
-                'heatmap-weight': ['interpolate', ['linear'], ['get', 'weight'], 0, 0, 6, 1],
-                'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 0, 1, 9, 3],
-                'heatmap-color': [
-                  'interpolate',
-                  ['linear'],
-                  ['heatmap-density'],
-                  0, 'rgba(33,102,172,0)',
-                  0.2, 'rgb(103,169,207)',
-                  0.4, 'rgb(209,229,240)',
-                  0.6, 'rgb(253,219,199)',
-                  0.8, 'rgb(239,138,98)',
-                  1, 'rgb(178,24,43)'
-                ],
-                'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 0, 2, 9, 20],
-                'heatmap-opacity': ['interpolate', ['linear'], ['zoom'], 7, 1, 9, 0]
-              }}
-            />
-          </Source>
-        )}
-
         {/* Accident Markers */}
-        {!showHeatmap && filteredAccidents.map((accident: AccidentRecord) => (
+        {filteredAccidents.map((accident) => (
           <Marker
             key={accident.id}
-            latitude={accident.location_lat}
-            longitude={accident.location_lng}
+            latitude={accident.location_lat || 0}
+            longitude={accident.location_lng || 0}
             onClick={(e) => {
               e.originalEvent.stopPropagation();
               handleMarkerClick(accident);
@@ -210,7 +107,7 @@ const MapView: React.FC<MapViewProps> = ({ preferences }) => {
             >
               <div 
                 className="w-6 h-6 rounded-full border-2 border-white shadow-lg flex items-center justify-center"
-                style={{ backgroundColor: getMarkerColor(accident.damage_severity) }}
+                style={{ backgroundColor: getMarkerColor(accident.damage_severity || 'minor') }}
               >
                 <AlertCircle className="w-3 h-3 text-white" />
               </div>
@@ -221,8 +118,8 @@ const MapView: React.FC<MapViewProps> = ({ preferences }) => {
         {/* Accident Popup */}
         {selectedAccident && (
           <Popup
-            latitude={selectedAccident.location_lat}
-            longitude={selectedAccident.location_lng}
+            latitude={selectedAccident.location_lat || 0}
+            longitude={selectedAccident.location_lng || 0}
             onClose={() => setSelectedAccident(null)}
             closeButton={true}
             closeOnClick={false}
@@ -268,7 +165,7 @@ const MapView: React.FC<MapViewProps> = ({ preferences }) => {
                 
                 <div className="flex justify-between">
                   <span className="text-dark-muted">Time:</span>
-                  <span>{new Date(selectedAccident.timestamp).toLocaleString()}</span>
+                  <span>{selectedAccident.timestamp ? new Date(selectedAccident.timestamp).toLocaleString() : 'N/A'}</span>
                 </div>
               </div>
               
@@ -320,22 +217,6 @@ const MapView: React.FC<MapViewProps> = ({ preferences }) => {
             </div>
           </div>
 
-          {/* View Options */}
-          <div>
-            <label className="block text-sm font-medium mb-2">View Options</label>
-            <div className="space-y-2">
-              <label className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={showHeatmap}
-                  onChange={(e) => setShowHeatmap(e.target.checked)}
-                  className="rounded border-dark-border bg-dark-card text-tesla-blue focus:ring-tesla-blue focus:ring-offset-dark-surface"
-                />
-                <span className="text-sm">Show Heatmap</span>
-              </label>
-            </div>
-          </div>
-
           {/* Company Filter */}
           <div>
             <label className="block text-sm font-medium mb-2">Companies</label>
@@ -371,13 +252,13 @@ const MapView: React.FC<MapViewProps> = ({ preferences }) => {
               <div className="flex justify-between text-sm">
                 <span className="text-dark-muted">With Casualties:</span>
                 <span className="font-medium">
-                  {filteredAccidents.filter((a: AccidentRecord) => a.casualties > 0).length}
+                  {filteredAccidents.filter(a => (a.casualties || 0) > 0).length}
                 </span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-dark-muted">Severe Damage:</span>
                 <span className="font-medium">
-                  {filteredAccidents.filter((a: AccidentRecord) => a.damage_severity === 'severe').length}
+                  {filteredAccidents.filter(a => a.damage_severity === 'severe').length}
                 </span>
               </div>
             </div>
