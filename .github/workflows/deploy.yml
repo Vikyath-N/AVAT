@@ -24,6 +24,15 @@ jobs:
       with:
         node-version: '18'
         
+    - name: List workspace 📂
+      run: |
+        pwd
+        ls -la
+        echo "--- frontend ---"
+        ls -la frontend || true
+        echo "--- frontend/public ---"
+        ls -la frontend/public || true
+      
     - name: Install Dependencies 🔧
       working-directory: ./frontend
       run: pnpm install --no-frozen-lockfile
