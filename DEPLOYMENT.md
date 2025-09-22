@@ -43,37 +43,39 @@ npm start
 
 ### GitHub Pages (Current)
 
-The application is automatically deployed to GitHub Pages via GitHub Actions.
+The application is automatically deployed to GitHub Pages via GitHub Actions using PNPM and environment-secret driven runtime config.
 
 **Live URL**: https://vikyath-n.github.io/AVAT/
 
 #### Deployment Triggers:
-- Push to `main` branch
-- Manual workflow dispatch
+- Push to `main` or `master` branch
+- Pull requests validate build
 
 #### Environment Variables (GitHub Secrets):
-- `MAPBOX_TOKEN`: Your Mapbox public token
+- `MAPBOX_TOKEN`: Mapbox public token
+- `PROD_API_BASE_URL`: e.g. https://api.avat.vikyath.dev/api/v1
+- `PROD_WS_URL`: e.g. wss://api.avat.vikyath.dev/ws
 - `GITHUB_TOKEN`: Automatically provided by GitHub
 
 ### 🔄 Manual Deployment
 
 ```bash
-# Build and deploy frontend
+# Build and deploy frontend (gh-pages)
 cd frontend
-npm run build
-npm run deploy
+pnpm run build
+pnpm run deploy
 ```
 
 ## 🏗️ Full Stack Deployment Options
 
-### Option 1: Heroku
+### Option 1: Heroku (Legacy example)
 ```bash
 # Backend deployment
 heroku create avat-backend
 git subtree push --prefix backend heroku main
 
 # Update frontend environment
-REACT_APP_API_BASE_URL=https://avat-backend.herokuapp.com/api/v1
+REACT_APP_API_BASE_URL=https://<your-heroku-app>.herokuapp.com/api/v1
 ```
 
 ### Option 2: Railway

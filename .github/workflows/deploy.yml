@@ -14,23 +14,29 @@ jobs:
     - name: Checkout 🛎️
       uses: actions/checkout@v4
       
+    - name: Setup PNPM
+      uses: pnpm/action-setup@v4
+      with:
+        version: 8
+
     - name: Setup Node.js 📦
       uses: actions/setup-node@v4
       with:
         node-version: '18'
-        cache: 'npm'
-        cache-dependency-path: frontend/package-lock.json
+        cache: 'pnpm'
+        cache-dependency-path: frontend/pnpm-lock.yaml
         
     - name: Install Dependencies 🔧
       working-directory: ./frontend
-      run: npm ci
+      run: pnpm install --frozen-lockfile
       
     - name: Build Application 🏗️
       working-directory: ./frontend
-      run: npm run build
+      run: pnpm run build
       env:
-        REACT_APP_API_BASE_URL: https://avat-backend.herokuapp.com/api/v1
-        REACT_APP_WS_URL: wss://avat-backend.herokuapp.com/ws
+        # Configure these in repository secrets
+        REACT_APP_API_BASE_URL: ${{ secrets.PROD_API_BASE_URL }}
+        REACT_APP_WS_URL: ${{ secrets.PROD_WS_URL }}
         REACT_APP_MAPBOX_TOKEN: ${{ secrets.MAPBOX_TOKEN }}
         REACT_APP_APP_NAME: AVAT
         REACT_APP_VERSION: 2.0.0
