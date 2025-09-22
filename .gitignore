@@ -90,7 +90,10 @@ dist
 
 # Gatsby files
 .cache/
-public
+# public (ignored for some frameworks like Gatsby)
+# Allow CRA/Vite public directory in frontend
+!frontend/public
+!frontend/public/**
 
 # Storybook build outputs
 .out
