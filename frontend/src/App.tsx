@@ -11,8 +11,8 @@ import LoadingScreen from './components/common/LoadingScreen';
 import ErrorBoundary from './components/common/ErrorBoundary';
 
 // Pages
-import Dashboard from './pages/DashboardDemo';
-import MapView from './pages/MapViewDemo';
+import Dashboard from './pages/Dashboard';
+import MapView from './pages/MapView';
 import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
 
@@ -72,7 +72,8 @@ function App() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <Router>
+        {/* Use dynamic basename so routing works on localhost and GitHub Pages (/AVAT) */}
+        <Router basename={(process.env.REACT_APP_BASENAME as string) || (process.env.PUBLIC_URL ? new URL(process.env.PUBLIC_URL).pathname : '/') }>
           <div className="min-h-screen bg-dark-bg text-dark-text">
             {/* Background Pattern */}
             <div className="fixed inset-0 bg-mesh-pattern opacity-5 pointer-events-none" />
@@ -110,6 +111,7 @@ function App() {
                 {/* Page Content */}
                 <main className="flex-1 overflow-y-auto">
                   <Routes>
+                    {/* Always land on dashboard */}
                     <Route path="/" element={<Navigate to="/dashboard" replace />} />
                     <Route 
                       path="/dashboard" 
@@ -162,6 +164,8 @@ function App() {
                         </motion.div>
                       } 
                     />
+                    {/* Fallback: any unknown route redirects to dashboard */}
+                    <Route path="*" element={<Navigate to="/dashboard" replace />} />
                   </Routes>
                 </main>
               </div>

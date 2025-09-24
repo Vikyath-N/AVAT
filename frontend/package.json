@@ -2,7 +2,7 @@
   "name": "av-accident-analyzer",
   "version": "1.0.0",
   "description": "Tesla-inspired AV accident analysis platform",
-  "homepage": "https://vikyath.github.io/AVAT",
+  "homepage": "https://vikyath-n.github.io/AVAT",
   "private": true,
   "dependencies": {
     "@mapbox/mapbox-gl-geocoder": "^5.0.1",

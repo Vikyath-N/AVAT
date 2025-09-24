@@ -8,7 +8,8 @@ import { mockAccidents, mockMapData, mockAnalytics } from './mockData';
 import { AccidentRecord } from '../types';
 
 const isProduction = process.env.NODE_ENV === 'production';
-const isDemoMode = process.env.REACT_APP_DEMO_MODE === 'true' || isProduction;
+// Only enable demo mode if explicitly set. Do NOT auto-enable in production.
+const isDemoMode = process.env.REACT_APP_DEMO_MODE === 'true';
 
 // Force demo mode for development when backend is not available
 const forceDemoMode = false;
