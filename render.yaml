@@ -14,20 +14,24 @@ services:
     env: python
     plan: free
     buildCommand: |
-      # Install system dependencies for PDF processing
-      # These should be available on Render's runtime
-      echo "Checking for required system packages..."
+      set -e
+      if [ -f apt.txt ]; then
+        export DEBIAN_FRONTEND=noninteractive
+        apt-get update -y
+        xargs -a apt.txt apt-get install -y --no-install-recommends
+        rm -rf /var/lib/apt/lists/*
+      fi
+      pip install --upgrade pip
+      pip install -r requirements.txt
 
-      # Install Python dependencies using Poetry
-      poetry install --no-dev --no-interaction --no-ansi
-
-      # --- Frontend build (unchanged) ---
+      # Build frontend
       cd frontend
       export NODE_ENV=production
       npm install -g pnpm@8.15.8
       pnpm install --no-frozen-lockfile
       pnpm run build
 
+      # Copy frontend build to static directory
       cd ..
       mkdir -p static
       cp -r frontend/build/* static/
