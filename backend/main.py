@@ -19,10 +19,10 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
 # Local imports
-from api.accidents import router as accidents_router
-from api.analytics import router as analytics_router
-from api.websocket import WebSocketManager
-from api import reports as reports_router
+from .api.accidents import router as accidents_router
+from .api.analytics import router as analytics_router
+from .api.websocket import WebSocketManager
+from .api import reports as reports_router
 from models.schemas import *
 from services.data_service import DataService
 from services.cache_service import CacheService
