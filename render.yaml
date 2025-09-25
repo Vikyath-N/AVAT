@@ -14,13 +14,24 @@ services:
     env: python
     plan: free
     buildCommand: |
-      # Install system dependencies (Render provides these in Python runtime)
-      # poppler-utils and tesseract-ocr are available in Render's Python environment
+      # Install Python dependencies (Render provides system packages in runtime)
+      pip install --upgrade pip
       pip install -r requirements.txt
+
       # Build frontend
-      cd frontend && npm install -g pnpm && pnpm install --no-frozen-lockfile && pnpm run build
+      cd frontend
+      export NODE_ENV=production
+      npm install -g pnpm@8.15.8
+      pnpm install --no-frozen-lockfile
+      pnpm run build
+
       # Copy frontend build to static directory
-      mkdir -p static && cp -r frontend/build/* static/
+      cd ..
+      mkdir -p static
+      cp -r frontend/build/* static/
+
+      # Create flag file to indicate build completion
+      touch static/build-complete.flag
     startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
     autoDeploy: true
     branch: main
