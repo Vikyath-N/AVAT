@@ -36,7 +36,7 @@ services:
       mkdir -p static
       cp -r frontend/build/* static/
       touch static/build-complete.flag
-    startCommand: /opt/render/project/src/.venv/bin/uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    startCommand: /opt/render/project/src/.venv/bin/python -m uvicorn backend.main:app --host 0.0.0.0 --port $PORT
     autoDeploy: true
     branch: main
     envVars:
