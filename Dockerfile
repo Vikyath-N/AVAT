@@ -6,6 +6,7 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     poppler-utils \
     tesseract-ocr \
+    gfortran \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
