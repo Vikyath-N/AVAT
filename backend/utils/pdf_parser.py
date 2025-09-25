@@ -135,8 +135,12 @@ def ocr_full_text(path: str) -> str:
         for p in pdf.pages:
             # Render to image for OCR
             img = p.to_image(resolution=300).original.convert("L")
-            txt = pytesseract.image_to_string(img)
-            texts.append(txt)
+            try:
+                txt = pytesseract.image_to_string(img)
+                texts.append(txt)
+            except Exception as e:
+                print(f"Warning: OCR failed for page: {e}")
+                texts.append("")  # Add empty string as fallback
     return _normalize_whitespace("\n\n".join(texts))
 
 
@@ -157,7 +161,16 @@ def extract_with_ocr_fallback(path: str) -> Tuple[str, int, bool]:
 # ---------------- Region-based OCR helpers ---------------- #
 
 def _image_to_data(img: Image.Image) -> Dict[str, List]:
-    return pytesseract.image_to_data(img, output_type=Output.DICT)
+    try:
+        return pytesseract.image_to_data(img, output_type=Output.DICT)
+    except Exception as e:
+        print(f"Warning: OCR image_to_data failed: {e}")
+        # Return empty structure as fallback
+        return {
+            'level': [], 'page_num': [], 'block_num': [], 'par_num': [],
+            'line_num': [], 'word_num': [], 'left': [], 'top': [],
+            'width': [], 'height': [], 'conf': [], 'text': []
+        }
 
 
 def _normalize_word(word: str) -> str:
@@ -254,7 +267,13 @@ def extract_sections_with_regions(pdf_path: str) -> Dict[str, Any]:
         "section6": {},
     }
 
-    pages = convert_from_path(pdf_path, dpi=300, fmt='png')
+    try:
+        pages = convert_from_path(pdf_path, dpi=300, fmt='png')
+    except Exception as e:
+        # Handle case where system packages (poppler-utils) are not available
+        print(f"Warning: Could not convert PDF to images: {e}")
+        print("This may be due to missing system packages (poppler-utils).")
+        return result
     if not pages:
         return result
     page1 = pages[0]
@@ -268,9 +287,13 @@ def extract_sections_with_regions(pdf_path: str) -> Dict[str, Any]:
 
     def read_field(rect: Tuple[int, int, int, int]) -> Optional[str]:
         crop = page1.crop((rect[0], rect[1], rect[0]+rect[2], rect[1]+rect[3])).convert('L')
-        text = pytesseract.image_to_string(crop, config='--psm 7')
-        text = _clean_text(text)
-        return text or None
+        try:
+            text = pytesseract.image_to_string(crop, config='--psm 7')
+            text = _clean_text(text)
+            return text or None
+        except Exception as e:
+            print(f"Warning: OCR failed for field: {e}")
+            return None
 
     def parse_date(t: Optional[str]) -> Optional[str]:
         if not t:

@@ -14,18 +14,12 @@ services:
     env: python
     plan: free
     buildCommand: |
-      # Always prefer wheels and avoid building from source
-      export PIP_ONLY_BINARY=":all:"
-
-      # Upgrade pip/setuptools/wheel, then install deps as wheels only
-      python -m pip install --upgrade pip setuptools wheel
-      # If your requirements.txt already pins:
-      #   numpy==2.1.x, scipy==1.13.1, pandas==2.2.x, scikit-learn==1.5.x
-      # this will install manylinux wheels on Py3.11+
-      python -m pip install --no-cache-dir --only-binary=:all: -r requirements.txt
-
       # Install system dependencies for PDF processing
-      if [ -f apt.txt ]; then sudo apt-get update -y && xargs -a apt.txt sudo apt-get install -y; fi
+      # These should be available on Render's runtime
+      echo "Checking for required system packages..."
+
+      # Install Python dependencies using Poetry
+      poetry install --no-dev --no-interaction --no-ansi
 
       # --- Frontend build (unchanged) ---
       cd frontend

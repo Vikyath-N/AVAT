@@ -1,0 +1,47 @@
+[tool.poetry]
+name = "avat-backend"
+version = "0.1.0"
+description = "AV Accident Analysis Platform Backend"
+authors = ["Vikyath <vikyath@example.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "0.104.1"
+uvicorn = "0.24.0"
+pydantic = "2.5.0"
+python-multipart = "0.0.6"
+pdfplumber = "0.10.0"
+pdf2image = "1.17.0"
+Pillow = "10.1.0"
+pytesseract = "0.3.10"
+requests = "2.31.0"
+beautifulsoup4 = "4.12.2"
+pandas = "2.2.3"
+numpy = "1.26.4"
+geopy = "2.4.1"
+psycopg2-binary = "2.9.9"
+redis = "5.0.1"
+nltk = "3.8.1"
+textblob = "0.17.1"
+scikit-learn = "1.5.2"
+scipy = "1.13.1"
+matplotlib = "3.8.2"
+seaborn = "0.13.0"
+plotly = "5.17.0"
+celery = "5.3.4"
+aioredis = "2.0.1"
+python-dotenv = "1.0.0"
+loguru = "0.7.2"
+tqdm = "4.66.1"
+pytest = "7.4.3"
+black = "23.11.0"
+flake8 = "6.1.0"
+APScheduler = "3.10.4"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+avat-backend = "backend.main:app"
