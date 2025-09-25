@@ -1,0 +1,8 @@
+# Simplified requirements for quick testing
+requests==2.31.0
+pandas==2.2.3
+numpy==2.1.1
+fastapi==0.104.1
+uvicorn==0.24.0
+scikit-learn==1.5.0
+

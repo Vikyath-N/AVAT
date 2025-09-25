@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - 8000:8000
+    environment:
+      - PYTHONUNBUFFERED=1
+      - AVAT_DATA_DIR=/app/data/pdfs
+    volumes:
+      - ./data:/app/data
+
+  # Optional: Add PostgreSQL and Redis for full local testing
+  postgres:
+    image: postgres:15
+    environment:
+      - POSTGRES_DB=avat_local
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - 5432:5432
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - 6379:6379
