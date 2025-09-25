@@ -210,6 +210,38 @@ class CreateDmvPdfFilesTable(Migration):
     def down(self, cursor: sqlite3.Cursor) -> None:
         cursor.execute('DROP TABLE IF EXISTS dmv_pdf_files')
 
+class AddDamageDiagramColumns(Migration):
+    """Add columns for damage diagram path and quadrant scores"""
+    def __init__(self):
+        super().__init__("008", "Add damage diagram columns to accidents")
+
+    def up(self, cursor: sqlite3.Cursor) -> None:
+        cursor.execute('PRAGMA table_info(accidents)')
+        cols = {row[1] for row in cursor.fetchall()}
+        if 'damage_diagram_path' not in cols:
+            cursor.execute('ALTER TABLE accidents ADD COLUMN damage_diagram_path TEXT')
+        if 'damage_quadrants' not in cols:
+            cursor.execute('ALTER TABLE accidents ADD COLUMN damage_quadrants TEXT')
+
+    def down(self, cursor: sqlite3.Cursor) -> None:
+        # SQLite cannot drop columns easily; leave as no-op
+        pass
+
+class AddFormSectionsColumn(Migration):
+    """Add JSON column to store parsed form sections (1-6)"""
+    def __init__(self):
+        super().__init__("009", "Add form_sections column to accidents")
+
+    def up(self, cursor: sqlite3.Cursor) -> None:
+        cursor.execute('PRAGMA table_info(accidents)')
+        cols = {row[1] for row in cursor.fetchall()}
+        if 'form_sections' not in cols:
+            cursor.execute('ALTER TABLE accidents ADD COLUMN form_sections TEXT')
+
+    def down(self, cursor: sqlite3.Cursor) -> None:
+        # SQLite cannot drop columns easily; leave as no-op
+        pass
+
 class MigrationManager:
     """Manages database migrations"""
     
@@ -221,7 +253,9 @@ class MigrationManager:
             CreateDmvReportsTable(),
             CreateDmvScrapeRunsTable(),
             AddAccidentsSourceColumns(),
-            CreateDmvPdfFilesTable()
+            CreateDmvPdfFilesTable(),
+            AddDamageDiagramColumns(),
+            AddFormSectionsColumn()
         ]
     
     def get_applied_migrations(self) -> List[str]:

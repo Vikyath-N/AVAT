@@ -27,6 +27,7 @@ import {
 } from 'recharts';
 import { UserPreferences } from '../types';
 import { dataService, getDemoInfo } from '../services/dataService';
+import { accidentService } from '../services/api';
 
 interface DashboardProps {
   preferences: UserPreferences;
@@ -43,6 +44,7 @@ const Dashboard: React.FC<DashboardProps> = ({ preferences }) => {
     lastUpdate: new Date()
   });
   const [dashboardData, setDashboardData] = useState<any>(null);
+  const [latestAccident, setLatestAccident] = useState<any>(null);
 
   // Load dashboard data
   useEffect(() => {
@@ -52,9 +54,10 @@ const Dashboard: React.FC<DashboardProps> = ({ preferences }) => {
         setError(null);
 
         // Get system stats and analytics
-        const [statsResponse, analyticsResponse] = await Promise.all([
+        const [statsResponse, analyticsResponse, latest] = await Promise.all([
           dataService.getSystemStats(),
-          dataService.getAnalytics()
+          dataService.getAnalytics(),
+          accidentService.getLatestAccident()
         ]);
 
         const stats = statsResponse.data;
@@ -72,6 +75,8 @@ const Dashboard: React.FC<DashboardProps> = ({ preferences }) => {
           analytics,
           demoInfo: getDemoInfo()
         });
+
+        setLatestAccident(latest);
 
       } catch (err) {
         console.error('Dashboard loading error:', err);
@@ -442,6 +447,39 @@ const Dashboard: React.FC<DashboardProps> = ({ preferences }) => {
         animate="visible"
         className="grid grid-cols-1 lg:grid-cols-2 gap-6"
       >
+        {/* Latest Accident Details */}
+        {latestAccident && (
+          <motion.div variants={itemVariants} className="card-tesla">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold">Latest Accident (ID #{latestAccident.id})</h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <div className="text-dark-muted text-sm mb-2">Damage Diagram</div>
+                {latestAccident.damage_diagram_path ? (
+                  <img src={latestAccident.damage_diagram_path} alt="Damage diagram" className="rounded-lg border border-dark-border max-h-64 object-contain" />
+                ) : (
+                  <div className="text-dark-muted text-sm">No diagram available</div>
+                )}
+                {latestAccident.damage_quadrants && (
+                  <pre className="mt-3 p-3 bg-dark-card/50 rounded-lg text-xs overflow-auto border border-dark-border">
+{JSON.stringify(JSON.parse(latestAccident.damage_quadrants), null, 2)}
+                  </pre>
+                )}
+              </div>
+              <div>
+                <div className="text-dark-muted text-sm mb-2">Form Sections (1–6)</div>
+                {latestAccident.form_sections ? (
+                  <pre className="p-3 bg-dark-card/50 rounded-lg text-xs overflow-auto h-64 border border-dark-border">
+{JSON.stringify(JSON.parse(latestAccident.form_sections), null, 2)}
+                  </pre>
+                ) : (
+                  <div className="text-dark-muted text-sm">Sections not available</div>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
         {/* Top Cities */}
         <motion.div variants={itemVariants} className="card-tesla">
           <div className="flex items-center justify-between mb-6">

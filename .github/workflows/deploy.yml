@@ -58,6 +58,10 @@ jobs:
         REACT_APP_ENABLE_ANALYTICS: true
         REACT_APP_ENABLE_EXPORT: true
         CI: false
+    
+    - name: Add SPA 404 fallback for GitHub Pages
+      run: |
+        cp frontend/build/index.html frontend/build/404.html
         
     - name: Deploy to GitHub Pages 🚀
       uses: peaceiris/actions-gh-pages@v3

@@ -285,3 +285,6 @@ pnpm-lock.yaml
 scraping_logs/
 data_exports/
 test_data/
+
+
+sample_data/

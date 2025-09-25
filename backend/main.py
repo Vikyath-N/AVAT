@@ -27,6 +27,7 @@ from models.schemas import *
 from services.data_service import DataService
 from services.cache_service import CacheService
 from utils.database import get_db_connection
+from utils.migrations import run_migrations
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -47,6 +48,12 @@ async def lifespan(app: FastAPI):
     # Initialize services
     await cache_service.initialize()
     await data_service.initialize()
+    # Ensure database schema is up-to-date
+    try:
+        run_migrations()
+        logger.info("✅ Database migrations applied")
+    except Exception as e:
+        logger.error(f"Migration error: {e}")
     
     # Start background tasks
     asyncio.create_task(background_data_updater())
@@ -83,7 +90,12 @@ app = FastAPI(
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "https://vikyath-n.github.io",
+        "https://avat.onrender.com"  # Production Render domain
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -95,7 +107,7 @@ app.include_router(analytics_router, prefix="/api/v1/analytics", tags=["analytic
 app.include_router(reports_router.router, prefix="/api/v1/reports", tags=["reports"])
 
 # Static files (for serving React build in production)
-# app.mount("/static", StaticFiles(directory="static"), name="static")
+# Mount static files after API routes to avoid conflicts
 
 @app.get("/")
 async def root():
@@ -310,6 +322,10 @@ async def general_exception_handler(request, exc):
             }
         }
     )
+
+# Static files (for serving React build in production)
+# Mount at the end to avoid conflicts with API routes
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
 if __name__ == "__main__":
     uvicorn.run(

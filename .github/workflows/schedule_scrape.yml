@@ -1,0 +1,50 @@
+name: Scheduled DMV Scrape
+
+on:
+  schedule:
+    # Daily at 03:15 UTC (after our default 03:00/03:10 jobs)
+    - cron: '15 3 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scheduled-scrape
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@v4
+
+      - name: Validate API_BASE_URL secret
+        env:
+          API_BASE_URL: ${{ secrets.PROD_API_BASE_URL }}
+        run: |
+          if [ -z "$API_BASE_URL" ]; then
+            echo "❌ Missing PROD_API_BASE_URL secret (e.g. https://<render-host>/api/v1)" >&2
+            exit 1
+          fi
+
+      - name: Health check ✅
+        env:
+          API_BASE_URL: ${{ secrets.PROD_API_BASE_URL }}
+        run: |
+          curl -fS -m 30 "$API_BASE_URL/health" | cat
+
+      - name: Sync DMV index 📄
+        env:
+          API_BASE_URL: ${{ secrets.PROD_API_BASE_URL }}
+        run: |
+          curl -fS -m 600 -X POST "$API_BASE_URL/reports/sync-index" | cat
+
+      - name: Sync DMV PDFs and parse 🔎
+        env:
+          API_BASE_URL: ${{ secrets.PROD_API_BASE_URL }}
+        run: |
+          curl -fS -m 1800 -X POST "$API_BASE_URL/reports/sync-pdfs?limit=25" | cat
+
+

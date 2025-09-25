@@ -1,0 +1,44 @@
+services:
+  - type: pserv
+    name: avat-database
+    env: postgres
+    databaseName: avat_prod
+    ipAllowList: []  # Only accessible by other services in this project
+
+  - type: redis
+    name: avat-redis
+    ipAllowList: []  # Only accessible by other services in this project
+
+  - type: web
+    name: avat-backend
+    env: python
+    plan: free
+    buildCommand: |
+      if [ -f apt.txt ]; then sudo apt-get update -y && xargs -a apt.txt sudo apt-get install -y; fi
+      pip install -r requirements.txt
+      # Build frontend
+      cd frontend && npm install -g pnpm && pnpm install --no-frozen-lockfile && pnpm run build
+      # Copy frontend build to static directory
+      mkdir -p static && cp -r frontend/build/* static/
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    autoDeploy: true
+    branch: main
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: AVAT_DATA_DIR
+        value: /opt/render/project/.data/pdfs
+      - key: TZ
+        value: UTC
+      - key: DATABASE_URL
+        fromService:
+          type: pserv
+          name: avat-database
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: avat-redis
+          property: connectionString
+    healthCheckPath: /api/v1/health
+

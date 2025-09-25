@@ -114,6 +114,18 @@ export const accidentService = {
     return response.data;
   },
 
+  // Get the most recent accident by id desc
+  getLatestAccident: async (): Promise<AccidentRecord | null> => {
+    const response = await api.get('/accidents', {
+      params: { page: 1, limit: 1, sort_by: 'id', sort_order: 'desc' }
+    });
+    const payload = response.data;
+    if (payload && payload.data && payload.data.length > 0) {
+      return payload.data[0] as AccidentRecord;
+    }
+    return null;
+  },
+
   // Get city statistics
   getCityStats: async (city: string) => {
     const response = await api.get(`/accidents/cities/${city}/stats`);

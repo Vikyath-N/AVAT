@@ -4,13 +4,14 @@ Handles advanced analytics and reporting
 """
 
 from fastapi import APIRouter, HTTPException, Query
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
 
 from models.schemas import AnalyticsData, APIResponse
 from services.data_service import DataService
 from services.cache_service import CacheService
 from utils.logger import get_logger
+from utils.database import get_db_connection
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -21,98 +22,175 @@ cache_service = CacheService()
 
 @router.get("/overview")
 async def get_analytics_overview():
-    """Get comprehensive analytics overview"""
+    """Get comprehensive analytics overview from real data"""
     try:
         cache_key = "analytics:overview"
         cached_data = await cache_service.get(cache_key)
-        
         if cached_data:
-            return APIResponse(
-                data=cached_data,
-                timestamp=datetime.utcnow()
-            )
+            return APIResponse(data=cached_data, timestamp=datetime.utcnow())
 
-        # Mock analytics data for demonstration
-        analytics_data = {
-            "company_stats": [
-                {
-                    "company": "Waymo",
-                    "accident_count": 49,
-                    "severity_breakdown": {"minor": 30, "moderate": 15, "severe": 4},
-                    "growth_rate": -8.2,
-                    "market_share": 35.5,
-                    "avg_casualties": 0.2
-                },
-                {
-                    "company": "Cruise",
-                    "accident_count": 41,
-                    "severity_breakdown": {"minor": 22, "moderate": 14, "severe": 5},
-                    "growth_rate": -15.1,
-                    "market_share": 29.7,
-                    "avg_casualties": 0.3
-                },
-                {
-                    "company": "Tesla",
-                    "accident_count": 23,
-                    "severity_breakdown": {"minor": 12, "moderate": 8, "severe": 3},
-                    "growth_rate": 5.3,
-                    "market_share": 16.7,
-                    "avg_casualties": 0.4
-                }
-            ],
-            "vehicle_stats": [
-                {
-                    "make": "Chrysler",
-                    "model": "Pacifica",
-                    "accident_count": 49,
-                    "accident_rate_per_mile": 0.41,
-                    "severity_score": 2.1,
-                    "most_common_damage": "front"
-                },
-                {
-                    "make": "Chevrolet",
-                    "model": "Bolt",
-                    "accident_count": 41,
-                    "accident_rate_per_mile": 0.43,
-                    "severity_score": 2.3,
-                    "most_common_damage": "side"
-                }
-            ],
-            "city_stats": [
-                {
-                    "city": "San Francisco",
-                    "city_type": "urban",
-                    "accident_count": 89,
-                    "accidents_per_capita": 0.01,
-                    "most_common_intersection_type": "traffic light",
-                    "avg_severity": 2.4
-                },
-                {
-                    "city": "Mountain View",
-                    "city_type": "suburban",
-                    "accident_count": 67,
-                    "accidents_per_capita": 0.008,
-                    "most_common_intersection_type": "stop sign",
-                    "avg_severity": 1.9
-                }
-            ],
-            "summary": {
-                "total_accidents": 138,
-                "trend_direction": "decreasing",
-                "trend_percentage": -12.3,
-                "most_dangerous_hour": "17:00",
-                "safest_company": "Waymo",
-                "most_common_severity": "minor"
-            }
+        overview: Dict[str, Any] = {
+            "company_stats": [],
+            "vehicle_stats": [],
+            "city_stats": [],
+            "summary": {}
         }
 
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+
+            # Summary: totals and trends
+            cursor.execute("SELECT COUNT(*) FROM accidents")
+            total_accidents = cursor.fetchone()[0]
+
+            # last 30 days vs previous 30 for trend percentage
+            cursor.execute("SELECT MAX(timestamp) FROM accidents")
+            max_ts = cursor.fetchone()[0]
+            if max_ts:
+                cursor.execute("SELECT DATETIME(?, '-30 days')", (max_ts,))
+                thirty_days_ago = cursor.fetchone()[0]
+                cursor.execute("SELECT DATETIME(?, '-60 days')", (max_ts,))
+                sixty_days_ago = cursor.fetchone()[0]
+
+                cursor.execute("SELECT COUNT(*) FROM accidents WHERE timestamp > ?", (thirty_days_ago,))
+                last_30 = cursor.fetchone()[0]
+                cursor.execute("SELECT COUNT(*) FROM accidents WHERE timestamp > ? AND timestamp <= ?", (sixty_days_ago, thirty_days_ago))
+                prev_30 = cursor.fetchone()[0]
+            else:
+                last_30 = 0
+                prev_30 = 0
+
+            if prev_30 == 0:
+                trend_percentage = 0.0
+            else:
+                trend_percentage = ((last_30 - prev_30) / prev_30) * 100.0
+            trend_direction = "increasing" if trend_percentage > 0 else ("decreasing" if trend_percentage < 0 else "flat")
+
+            # Most dangerous hour (by count)
+            cursor.execute("""
+                SELECT STRFTIME('%H:00', time_of_day) AS hour_bucket, COUNT(*)
+                FROM accidents
+                WHERE time_of_day IS NOT NULL AND TRIM(time_of_day) <> ''
+                GROUP BY hour_bucket
+                ORDER BY COUNT(*) DESC
+                LIMIT 1
+            """)
+            row = cursor.fetchone()
+            most_dangerous_hour = row[0] if row else None
+
+            # Most common severity
+            cursor.execute("SELECT damage_severity, COUNT(*) AS c FROM accidents WHERE damage_severity IS NOT NULL GROUP BY damage_severity ORDER BY c DESC LIMIT 1")
+            row = cursor.fetchone()
+            most_common_severity = row[0] if row else None
+
+            overview["summary"] = {
+                "total_accidents": total_accidents,
+                "trend_direction": trend_direction,
+                "trend_percentage": round(trend_percentage, 2),
+                "most_dangerous_hour": most_dangerous_hour,
+                "most_common_severity": most_common_severity,
+            }
+
+            # Company stats
+            cursor.execute("""
+                SELECT company, COUNT(*) AS cnt, AVG(COALESCE(casualties,0)) AS avg_casualties
+                FROM accidents
+                WHERE company IS NOT NULL
+                GROUP BY company
+                ORDER BY cnt DESC
+                LIMIT 20
+            """)
+            companies = cursor.fetchall()
+            total_with_company = sum([r[1] for r in companies]) or 1
+            company_stats = []
+            for company, cnt, avg_casualties in companies:
+                # Severity breakdown per company
+                cursor.execute(
+                    "SELECT damage_severity, COUNT(*) FROM accidents WHERE company = ? AND damage_severity IS NOT NULL GROUP BY damage_severity",
+                    (company,)
+                )
+                sev = {row[0]: row[1] for row in cursor.fetchall()}
+                company_stats.append({
+                    "company": company,
+                    "accident_count": cnt,
+                    "severity_breakdown": sev,
+                    "avg_casualties": round(avg_casualties or 0, 2),
+                    "market_share": round((cnt / total_with_company) * 100.0, 2)
+                })
+            overview["company_stats"] = company_stats
+
+            # Vehicle stats (make/model)
+            cursor.execute("""
+                SELECT vehicle_make, vehicle_model, COUNT(*) AS cnt
+                FROM accidents
+                WHERE vehicle_make IS NOT NULL
+                GROUP BY vehicle_make, vehicle_model
+                ORDER BY cnt DESC
+                LIMIT 20
+            """)
+            vehicle_stats = []
+            for make, model, cnt in cursor.fetchall():
+                # Most common damage for this make/model
+                cursor.execute(
+                    "SELECT damage_location, COUNT(*) AS c FROM accidents WHERE vehicle_make = ? AND vehicle_model = ? AND damage_location IS NOT NULL GROUP BY damage_location ORDER BY c DESC LIMIT 1",
+                    (make, model)
+                )
+                row = cursor.fetchone()
+                most_common_damage = row[0] if row else None
+                vehicle_stats.append({
+                    "make": make,
+                    "model": model,
+                    "accident_count": cnt,
+                    "most_common_damage": most_common_damage
+                })
+            overview["vehicle_stats"] = vehicle_stats
+
+            # City stats
+            cursor.execute("""
+                SELECT city, COALESCE(city_type, 'unknown') AS city_type, COUNT(*) AS cnt
+                FROM accidents
+                WHERE city IS NOT NULL
+                GROUP BY city, city_type
+                ORDER BY cnt DESC
+                LIMIT 20
+            """)
+            city_stats = []
+            for city, city_type, cnt in cursor.fetchall():
+                # Average severity proxy: map severity strings to numeric 1..4
+                cursor.execute(
+                    """
+                    SELECT AVG(
+                        CASE LOWER(COALESCE(damage_severity,''))
+                            WHEN 'minor' THEN 1
+                            WHEN 'moderate' THEN 2
+                            WHEN 'severe' THEN 3
+                            WHEN 'total loss' THEN 4
+                            ELSE 0
+                        END
+                    ) FROM accidents WHERE city = ?
+                    """,
+                    (city,)
+                )
+                avg_severity = cursor.fetchone()[0]
+                # Common intersection type
+                cursor.execute(
+                    "SELECT intersection_type, COUNT(*) AS c FROM accidents WHERE city = ? AND intersection_type IS NOT NULL GROUP BY intersection_type ORDER BY c DESC LIMIT 1",
+                    (city,)
+                )
+                row = cursor.fetchone()
+                common_intersection = row[0] if row else None
+                city_stats.append({
+                    "city": city,
+                    "city_type": city_type,
+                    "accident_count": cnt,
+                    "most_common_intersection_type": common_intersection,
+                    "avg_severity": round(avg_severity or 0, 2)
+                })
+            overview["city_stats"] = city_stats
+
         # Cache for 30 minutes
-        await cache_service.set(cache_key, analytics_data, expire=1800)
-        
-        return APIResponse(
-            data=analytics_data,
-            timestamp=datetime.utcnow()
-        )
+        await cache_service.set(cache_key, overview, expire=1800)
+        return APIResponse(data=overview, timestamp=datetime.utcnow())
 
     except Exception as e:
         logger.error(f"Error fetching analytics overview: {e}")

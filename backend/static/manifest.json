@@ -1,0 +1,11 @@
+{
+  "short_name": "AVAT",
+  "name": "AVAT - Autonomous Vehicle Analysis",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "description": "Autonomous vehicle accident analysis with interactive maps and analytics"
+}
+
+

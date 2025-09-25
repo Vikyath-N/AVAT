@@ -8,6 +8,8 @@ Foundation for Phase 2 PDF download/parsing.
 """
 
 import re
+import os
+import json
 import requests
 from datetime import datetime
 from typing import List, Optional, Dict, Any
@@ -15,7 +17,15 @@ from bs4 import BeautifulSoup
 
 from utils.database import get_db_connection
 from utils.logger import get_logger
-from utils.pdf_parser import extract_text_and_pages, sha256_file
+from utils.pdf_parser import (
+    extract_text_and_pages,
+    extract_clean_text_and_pages,
+    extract_damage_diagram_info,
+    parse_form_sections,
+    extract_with_ocr_fallback,
+    extract_sections_with_regions,
+    sha256_file,
+)
 try:
     from enhanced_data_pipeline import EnhancedDataExtractor, AccidentRecord as EnhancedAccident
 except ModuleNotFoundError:
@@ -188,8 +198,9 @@ class DMVScraperService:
             _id, pdf_url, year, manufacturer, slug = row
 
         import os
-        os.makedirs("/Users/vikyath/Projects/AVAT/data/pdfs", exist_ok=True)
-        dest_dir = f"/Users/vikyath/Projects/AVAT/data/pdfs/{year}/{manufacturer}"
+        base_data_dir = os.environ.get("AVAT_DATA_DIR", "/Users/vikyath/Projects/AVAT/data/pdfs")
+        os.makedirs(base_data_dir, exist_ok=True)
+        dest_dir = f"{base_data_dir}/{year}/{manufacturer}"
         os.makedirs(dest_dir, exist_ok=True)
         dest_path = f"{dest_dir}/{slug}.pdf"
 
@@ -222,6 +233,63 @@ class DMVScraperService:
 
         return {"path": dest_path, "sha256": sha, "pages": pages, "text": text}
 
+    def ingest_local_pdf(self, pdf_path: str, manufacturer: Optional[str] = None, incident_date: Optional[str] = None) -> Optional[int]:
+        """Ingest a local PDF file into the DB by inserting a dmv_reports row and parsing text."""
+        import os
+        if not os.path.isfile(pdf_path):
+            logger.error(f"Local PDF not found: {pdf_path}")
+            return None
+
+        # Derive basic metadata from filename if possible
+        # e.g., Waymo_091025_Redacted.pdf -> manufacturer=Waymo, incident_date=2025-09-10
+        derived_mfg = manufacturer
+        derived_date = incident_date
+        base = os.path.basename(pdf_path)
+        m = re.match(r"([A-Za-z]+)_(\d{2})(\d{2})(\d{2})", base)
+        if m:
+            derived_mfg = derived_mfg or m.group(1)
+            mm, dd, yy = m.group(2), m.group(3), m.group(4)
+            # Assume 20xx for yy
+            derived_date = derived_date or f"20{yy}-{mm}-{dd}"
+
+        text, pages, used_ocr = extract_with_ocr_fallback(pdf_path)
+        sha = sha256_file(pdf_path)
+
+        with get_db_connection() as conn:
+            cur = conn.cursor()
+            # Insert a synthetic report row to link source; avoid unique constraint conflicts
+            try:
+                cur.execute(
+                    """
+                    INSERT INTO dmv_reports (manufacturer, incident_date, year, display_text, page_url, pdf_url, source_slug, sequence_num, pdf_sha256, status)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'parsed')
+                    """,
+                    (
+                        derived_mfg,
+                        derived_date,
+                        int(derived_date.split('-')[0]) if derived_date else None,
+                        base,
+                        None,
+                        None,
+                        self._slugify(base),
+                        1,
+                        sha,
+                    ),
+                )
+                report_id = cur.lastrowid
+            except Exception:
+                # If duplicate, fetch existing report id
+                cur.execute(
+                    "SELECT id FROM dmv_reports WHERE manufacturer = ? AND incident_date = ? AND sequence_num = 1",
+                    (derived_mfg, derived_date),
+                )
+                row = cur.fetchone()
+                report_id = row[0] if row else None
+            conn.commit()
+
+        # Persist accident
+        return self.parse_and_persist(report_id, text, pdf_url=None, pdf_path=pdf_path)
+
     def parse_and_persist(self, report_id: int, text: str, pdf_url: str, pdf_path: str) -> Optional[int]:
         """Parse text into an accident record and insert into accidents."""
         # Extract metadata using EnhancedDataExtractor
@@ -237,18 +305,42 @@ class DMVScraperService:
             manufacturer = m[0] if m else None
             incident_date = m[1] if m else None
 
+            # Attempt damage diagram extraction
+            try:
+                diagram_dir = os.environ.get("AVAT_DATA_DIR", "/Users/vikyath/Projects/AVAT/data/pdfs")
+                diagram_outdir = os.path.join(diagram_dir, "diagrams")
+                diagram_path, quad_scores = extract_damage_diagram_info(pdf_path, diagram_outdir, f"report_{report_id}")
+            except Exception:
+                diagram_path, quad_scores = None, None
+
+            # Parse form sections from cleaned text + region OCR merge
+            base_sections = parse_form_sections(text) if text else {}
+            region_sections = extract_sections_with_regions(pdf_path)
+            def deep_merge(a, b):
+                out = dict(a or {})
+                for k, v in (b or {}).items():
+                    if isinstance(v, dict):
+                        out[k] = deep_merge(out.get(k, {}), v)
+                    else:
+                        out[k] = v if v not in (None, "") else out.get(k)
+                return out
+            sections_merged = deep_merge(base_sections, region_sections)
+            form_sections_json = json.dumps(sections_merged)
+
             cur.execute(
                 """
                 INSERT INTO accidents (
                     timestamp, company, vehicle_make, vehicle_model, location_address, location_lat, location_lng, city, county, city_type,
                     intersection_type, damage_severity, weather_conditions, time_of_day, casualties, av_mode, speed_limit, traffic_signals, road_type,
-                    damage_location, raw_text, report_url, source, source_report_id, pdf_url, pdf_local_path
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'dmv_pdf', ?, ?, ?)
+                    damage_location, raw_text, report_url, source, source_report_id, pdf_url, pdf_local_path,
+                    damage_diagram_path, damage_quadrants, form_sections
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'dmv_pdf', ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     record.timestamp, manufacturer or record.company, record.vehicle_make, record.vehicle_model, record.location_address, record.location_lat, record.location_lng,
                     record.city, record.county, getattr(record, 'city_type', None), record.intersection_type, record.damage_severity, record.weather_conditions, record.time_of_day,
-                    record.casualties, record.av_mode, record.speed_limit, record.traffic_signals, record.road_type, record.damage_location, record.raw_text or text, pdf_url, report_id, pdf_url, pdf_path
+                    record.casualties, record.av_mode, record.speed_limit, record.traffic_signals, record.road_type, record.damage_location, record.raw_text or text, pdf_url, report_id, pdf_url, pdf_path,
+                    diagram_path, json.dumps(quad_scores) if quad_scores else None, form_sections_json
                 )
             )
             accident_id = cur.lastrowid

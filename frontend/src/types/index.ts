@@ -24,6 +24,13 @@ export interface AccidentRecord {
   damage_location: string;
   raw_text: string;
   report_url: string;
+  source?: string;
+  source_report_id?: number;
+  pdf_url?: string;
+  pdf_local_path?: string;
+  damage_diagram_path?: string;
+  damage_quadrants?: string; // JSON string
+  form_sections?: string; // JSON string for sections 1-6
   created_at: string;
 }
 

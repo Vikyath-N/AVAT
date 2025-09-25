@@ -48,6 +48,14 @@ class AccidentRecord(BaseModel):
     damage_location: Optional[str] = None
     raw_text: Optional[str] = None
     report_url: Optional[str] = None
+    # Extended metadata
+    source: Optional[str] = None
+    source_report_id: Optional[int] = None
+    pdf_url: Optional[str] = None
+    pdf_local_path: Optional[str] = None
+    damage_diagram_path: Optional[str] = None
+    damage_quadrants: Optional[str] = None  # JSON string {front_left, front_right, rear_left, rear_right}
+    form_sections: Optional[str] = None     # JSON string for Sections 1-6
     created_at: Optional[datetime] = None
 
     class Config:
