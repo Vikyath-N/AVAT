@@ -1,10 +1,5 @@
-import os
-import sys
-
-sys.path.append(os.path.join(os.path.dirname(__file__), '../../'))
-
-from services.dmv_scraper_service import DMVScraperService
-from utils.database import get_db_connection
+from backend.services.dmv_scraper_service import DMVScraperService
+from backend.utils.database import get_db_connection
 
 
 def test_sync_index_inserts_reports(monkeypatch):

@@ -6,9 +6,9 @@ from fastapi import APIRouter, HTTPException, Query
 from typing import Optional
 from datetime import datetime
 
-from utils.database import get_db_connection
-from utils.logger import get_logger
-from services.dmv_scraper_service import DMVScraperService
+from ..utils.database import get_db_connection
+from ..utils.logger import get_logger
+from ..services.dmv_scraper_service import DMVScraperService
 
 router = APIRouter()
 logger = get_logger(__name__)

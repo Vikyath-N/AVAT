@@ -7,7 +7,7 @@ import json
 import os
 from typing import Any, Optional, Dict
 from datetime import datetime, timedelta
-from utils.logger import get_logger
+from ..utils.logger import get_logger
 
 logger = get_logger(__name__)
 

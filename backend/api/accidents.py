@@ -9,14 +9,14 @@ import sqlite3
 import pandas as pd
 from datetime import datetime, timedelta
 
-from models.schemas import (
+from ..models.schemas import (
     AccidentRecord, AccidentQuery, AccidentResponse, AccidentFilters,
     PaginationParams, MapData, APIResponse
 )
-from services.data_service import DataService
-from services.cache_service import CacheService
-from utils.database import get_db_connection
-from utils.logger import get_logger
+from ..services.data_service import DataService
+from ..services.cache_service import CacheService
+from ..utils.database import get_db_connection
+from ..utils.logger import get_logger
 
 router = APIRouter()
 logger = get_logger(__name__)

@@ -23,12 +23,12 @@ from .api.accidents import router as accidents_router
 from .api.analytics import router as analytics_router
 from .api.websocket import WebSocketManager
 from .api import reports as reports_router
-from models.schemas import *
-from services.data_service import DataService
-from services.cache_service import CacheService
-from utils.database import get_db_connection
-from utils.migrations import run_migrations
-from utils.logger import get_logger
+from .models.schemas import *
+from .services.data_service import DataService
+from .services.cache_service import CacheService
+from .utils.database import get_db_connection
+from .utils.migrations import run_migrations
+from .utils.logger import get_logger
 
 logger = get_logger(__name__)
 

@@ -6,7 +6,7 @@ import json
 import asyncio
 from typing import List, Dict, Any
 from fastapi import WebSocket
-from utils.logger import get_logger
+from ..utils.logger import get_logger
 
 logger = get_logger(__name__)
 

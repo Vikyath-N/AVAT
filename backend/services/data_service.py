@@ -8,9 +8,9 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
 import asyncio
 
-from models.schemas import AccidentRecord, AccidentQuery, AccidentFilters
-from utils.database import get_db_connection
-from utils.logger import get_logger
+from ..models.schemas import AccidentRecord, AccidentQuery, AccidentFilters
+from ..utils.database import get_db_connection
+from ..utils.logger import get_logger
 
 logger = get_logger(__name__)
 

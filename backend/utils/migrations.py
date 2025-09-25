@@ -7,8 +7,8 @@ import sqlite3
 import os
 from datetime import datetime
 from typing import List, Dict, Any
-from utils.database import get_db_connection
-from utils.logger import get_logger
+from ..utils.database import get_db_connection
+from ..utils.logger import get_logger
 
 logger = get_logger(__name__)
 

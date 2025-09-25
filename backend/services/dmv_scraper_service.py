@@ -15,9 +15,9 @@ from datetime import datetime
 from typing import List, Optional, Dict, Any
 from bs4 import BeautifulSoup
 
-from utils.database import get_db_connection
-from utils.logger import get_logger
-from utils.pdf_parser import (
+from ..utils.database import get_db_connection
+from ..utils.logger import get_logger
+from ..utils.pdf_parser import (
     extract_text_and_pages,
     extract_clean_text_and_pages,
     extract_damage_diagram_info,
