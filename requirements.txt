@@ -4,7 +4,7 @@
 requests==2.31.0
 beautifulsoup4==4.12.2
 pandas==2.2.3
-numpy==2.0.2
+numpy==2.1.1
 
 # Geospatial processing
 geopy==2.4.1
@@ -21,8 +21,8 @@ spacy==3.7.2
 textblob==0.17.1
 
 # Machine learning
-scikit-learn==1.5.2
-scipy==1.14.1
+scikit-learn==1.5.1
+scipy==1.13.1
 
 # API and backend
 fastapi==0.104.1
