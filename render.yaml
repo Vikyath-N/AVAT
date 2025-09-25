@@ -24,6 +24,9 @@ services:
       # this will install manylinux wheels on Py3.11+
       python -m pip install --no-cache-dir --only-binary=:all: -r requirements.txt
 
+      # Install system dependencies for PDF processing
+      if [ -f apt.txt ]; then sudo apt-get update -y && xargs -a apt.txt sudo apt-get install -y; fi
+
       # --- Frontend build (unchanged) ---
       cd frontend
       export NODE_ENV=production
