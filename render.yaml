@@ -21,6 +21,9 @@ services:
         xargs -a apt.txt apt-get install -y --no-install-recommends
         rm -rf /var/lib/apt/lists/*
       fi
+
+      # Activate virtual environment and install Python dependencies
+      source /opt/render/project/src/.venv/bin/activate
       pip install --upgrade pip
       pip install -r requirements.txt
 
