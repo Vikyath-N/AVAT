@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/AVAT/static/css/main.3e2a9aab.css",
-    "main.js": "/AVAT/static/js/main.a4d4c92a.js",
+    "main.js": "/AVAT/static/js/main.ad4382f4.js",
     "static/js/513.d7fffb6f.chunk.js": "/AVAT/static/js/513.d7fffb6f.chunk.js",
     "index.html": "/AVAT/index.html",
     "main.3e2a9aab.css.map": "/AVAT/static/css/main.3e2a9aab.css.map",
-    "main.a4d4c92a.js.map": "/AVAT/static/js/main.a4d4c92a.js.map",
+    "main.ad4382f4.js.map": "/AVAT/static/js/main.ad4382f4.js.map",
     "513.d7fffb6f.chunk.js.map": "/AVAT/static/js/513.d7fffb6f.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.3e2a9aab.css",
-    "static/js/main.a4d4c92a.js"
+    "static/js/main.ad4382f4.js"
   ]
 }
