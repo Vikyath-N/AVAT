@@ -6,7 +6,7 @@
 
 | Service | Before (Railway/Render) | After (Free Tier) | Savings |
 |---------|------------------------|-------------------|---------|
-| **Frontend** | GitHub Pages | GitHub Pages | $0 |
+| **Frontend** | GitHub Pages | Cloudflare Pages | $0 |
 | **Backend** | Railway/Render ($7/mo) | Cloudflare Workers | **$7/mo saved** |
 | **Database** | Render PostgreSQL ($7/mo) | Neon PostgreSQL | **$7/mo saved** |
 | **Cache** | Render Redis ($5/mo) | Upstash Redis | **$5/mo saved** |
@@ -17,9 +17,9 @@
 
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   GitHub Pages  │    │  Cloudflare      │    │     Neon        │
-│   (Frontend)    │◄──►│  Workers         │◄──►│   PostgreSQL    │
-│                 │    │  (Backend API)   │    │   (Database)    │
+│  Cloudflare     │    │  Cloudflare      │    │     Neon        │
+│   Pages         │◄──►│  Workers         │◄──►│   PostgreSQL    │
+│ (Frontend)      │    │  (Backend API)   │    │   (Database)    │
 └─────────────────┘    └──────────────────┘    └─────────────────┘
          │                        │                     │
          │                        ▼                     ▼
@@ -58,14 +58,31 @@
 - 256 MB storage
 - Global replication
 
-### 3. Backend Migration (Cloudflare Workers)
+### 3. Frontend Migration (Cloudflare Pages)
 
 **Setup Steps:**
 1. **Install Wrangler CLI**: `npm install -g wrangler`
 2. **Login to Cloudflare**: `wrangler login`
-3. **Create Workers Project**: Use the existing `backend-cloudflare/` directory
-4. **Set Environment Variables**: Configure database and Redis connections
-5. **Deploy**: `npm run deploy` from the `backend-cloudflare/` directory
+3. **Create Pages Project**: `wrangler pages project create your-project-name`
+4. **Connect to GitHub**: Select your repository (Vikyath-N/AVAT)
+5. **Configure Build Settings**:
+   - Build command: `npm run build`
+   - Build output: `build`
+   - Root directory: `frontend`
+6. **Add Custom Domain**: Configure `avat.vikyath.dev` in Cloudflare Pages
+
+**Free Tier Limits:**
+- Unlimited static requests
+- 500 builds per month
+- Custom domains included
+- Global CDN with 200+ edge locations
+
+### 4. Backend Migration (Cloudflare Workers)
+
+**Setup Steps:**
+1. **Create Workers Project**: Use the existing `backend-cloudflare/` directory
+2. **Set Environment Variables**: Configure database and Redis connections
+3. **Deploy**: `npm run deploy` from the `backend-cloudflare/` directory
 
 **Free Tier Limits:**
 - 100,000 requests per day
@@ -110,6 +127,8 @@ Add these to your GitHub repository secrets:
 - `CLOUDFLARE_API_TOKEN`: For automated deployment
 - `CLOUDFLARE_ACCOUNT_ID`: Your Cloudflare account ID
 
+**Note**: With Cloudflare Pages integration, deployments will be handled directly by Cloudflare Pages when you push to the main branch, providing faster deployments and better performance.
+
 ## 🔧 Development Setup
 
 ### Prerequisites
@@ -145,13 +164,20 @@ docker run --name avat-postgres -e POSTGRES_DB=avat_dev -e POSTGRES_USER=postgre
 
 ## 🚀 Deployment Pipeline
 
-### Automated Deployment (GitHub Actions)
+### Automated Deployment (Cloudflare Pages + GitHub Actions)
 
-The project includes automated deployment workflows:
+The project includes automated deployment with Cloudflare Pages integration:
 
-1. **Frontend**: Automatically deploys to GitHub Pages on push to `main`
+1. **Frontend**: Automatically deploys to Cloudflare Pages on push to `main` via GitHub integration
 2. **Backend**: Automatically deploys to Cloudflare Workers on push to `main`
 3. **Health Checks**: Validates database and cache connectivity
+
+**Benefits of Cloudflare Pages:**
+- ⚡ Faster deployments (no GitHub Pages build delays)
+- 🌍 Better global CDN performance
+- 📊 Advanced analytics and monitoring
+- 🎨 Preview deployments for pull requests
+- 🔄 Automatic HTTPS and optimization
 
 **Workflow Files:**
 - `.github/workflows/deploy-cloudflare.yml` - Cloudflare Workers deployment
@@ -160,12 +186,10 @@ The project includes automated deployment workflows:
 ### Manual Deployment
 
 ```bash
-# Deploy frontend to GitHub Pages
-cd frontend
-pnpm run build
-pnpm run deploy
+# Frontend deploys automatically via Cloudflare Pages GitHub integration
+# No manual deployment needed - just push to main branch
 
-# Deploy backend to Cloudflare Workers
+# Deploy backend to Cloudflare Workers (if needed manually)
 cd backend-cloudflare
 npm run deploy
 
@@ -176,19 +200,20 @@ bash scripts/migrate-to-free-infrastructure.sh
 ## 📊 Monitoring & Observability
 
 ### Health Checks
-- **Frontend**: GitHub Pages status page
+- **Frontend**: Cloudflare Pages dashboard and analytics
 - **Backend**: `/api/v1/health` endpoint on your Workers domain
 - **Database**: Neon console dashboard
 - **Cache**: Upstash console dashboard
 
 ### Logs & Debugging
+- **Cloudflare Pages**: View deployment logs in Cloudflare Dashboard → Pages
 - **Cloudflare Workers**: View logs in Cloudflare Dashboard → Workers
 - **Neon Database**: Query logs in Neon console
 - **Upstash Redis**: Monitor usage in Upstash console
 
 ### Performance Monitoring
-- **Frontend**: GitHub Pages analytics
-- **Backend**: Cloudflare Workers metrics
+- **Frontend**: Cloudflare Pages analytics and real user monitoring
+- **Backend**: Cloudflare Workers metrics and analytics
 - **Database**: Neon performance metrics
 
 ## 🔒 Security Considerations
@@ -267,6 +292,7 @@ wrangler deployments list
 ## 📈 Scaling Considerations
 
 ### Current Free Tier Limits
+- **Cloudflare Pages**: Unlimited requests, 500 builds/month
 - **Cloudflare Workers**: 100K requests/day (suitable for most applications)
 - **Neon Database**: 512 MB storage, 100 hours compute/month
 - **Upstash Redis**: 10K requests/month, 256 MB storage
@@ -290,22 +316,25 @@ wrangler deployments list
 | **Cost** | $19/month | $0/month |
 | **Setup Complexity** | Simple | Moderate |
 | **Scaling** | Manual | Automatic (within limits) |
-| **Global CDN** | No | Yes (Cloudflare) |
+| **Global CDN** | No | Yes (Cloudflare Pages + Workers) |
+| **Frontend Hosting** | GitHub Pages | Cloudflare Pages (Superior) |
 | **Database** | PostgreSQL | PostgreSQL (Neon) |
 | **Cache** | Redis | Redis (Upstash) |
 | **File Storage** | Local | R2 (Global) |
 | **Scheduled Jobs** | APScheduler | Cron Triggers |
 | **Real-time** | WebSocket | Polling/HTTP |
 | **Monitoring** | Basic | Comprehensive |
+| **Deploy Speed** | Slow (GitHub Pages) | Fast (Cloudflare Pages) |
 
 ## 🎯 Next Steps
 
 ### Immediate (Post-Migration)
-1. [ ] Test all application features thoroughly
-2. [ ] Verify database performance with your data
-3. [ ] Monitor service usage and costs
-4. [ ] Update any hardcoded URLs in your application
-5. [ ] Remove old Railway/Render services
+1. [ ] Set up Cloudflare Pages project with GitHub integration
+2. [ ] Configure custom domain (avat.vikyath.dev) in Cloudflare Pages
+3. [ ] Test all application features thoroughly on new domain
+4. [ ] Verify database performance with your data
+5. [ ] Monitor service usage and costs across all Cloudflare services
+6. [ ] Remove old Railway/Render services
 
 ### Future Enhancements
 1. [ ] Implement proper PDF processing in Cloudflare Workers
@@ -324,10 +353,11 @@ wrangler deployments list
 ## 📞 Support & Resources
 
 ### Documentation
-- **Neon**: [docs.neon.tech](https://docs.neon.tech)
-- **Upstash**: [docs.upstash.com](https://docs.upstash.com)
+- **Cloudflare Pages**: [developers.cloudflare.com/pages](https://developers.cloudflare.com/pages)
 - **Cloudflare Workers**: [developers.cloudflare.com/workers](https://developers.cloudflare.com/workers)
 - **Cloudflare R2**: [developers.cloudflare.com/r2](https://developers.cloudflare.com/r2)
+- **Neon**: [docs.neon.tech](https://docs.neon.tech)
+- **Upstash**: [docs.upstash.com](https://docs.upstash.com)
 
 ### Community
 - **GitHub Issues**: [Create Issue](../../issues)
@@ -341,8 +371,9 @@ wrangler deployments list
 
 ---
 
-**Last Updated**: $(date +%B\ %Y)
-**Version**: 2.0.0-Free
+**Last Updated**: September 2025
+**Version**: 2.1.0-Free (Cloudflare Pages)
 **Cost Savings**: $19/month → $0/month
+**New Architecture**: Cloudflare Pages + Workers + Neon + Upstash
 
-🎉 **Congratulations! Your AVAT deployment is now running on free infrastructure!**
+🎉 **Congratulations! Your AVAT deployment is now running on Cloudflare's premium free infrastructure!**
