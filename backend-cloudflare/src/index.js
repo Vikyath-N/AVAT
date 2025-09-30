@@ -119,6 +119,75 @@ app.get('/api/v1/health', async (c) => {
   }
 });
 
+// Get system stats
+app.get('/api/v1/stats', async (c) => {
+  try {
+    return c.json({
+      data: {
+        total_accidents: 27,
+        total_companies: 5,
+        total_cities: 4,
+        data_freshness: new Date().toISOString(),
+        update_frequency: "15 minutes",
+        api_version: "2.0.0",
+        database_size: "1.2 MB"
+      },
+      status: "success",
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    return c.json({
+      error: "Internal Server Error",
+      message: error.message,
+      timestamp: new Date().toISOString()
+    }, 500);
+  }
+});
+
+// Get analytics overview
+app.get('/api/v1/analytics/overview', async (c) => {
+  try {
+    return c.json({
+      data: {
+        company_stats: [
+          { company: "Waymo", accident_count: 20, severity_breakdown: { MINOR: 18, minor: 2 }, avg_casualties: 0, market_share: 74.07 },
+          { company: "Zoox", accident_count: 3, severity_breakdown: { MINOR: 2 }, avg_casualties: 0, market_share: 11.11 },
+          { company: "Cruise", accident_count: 2, severity_breakdown: { moderate: 2 }, avg_casualties: 0.5, market_share: 7.41 },
+          { company: "Ohmio", accident_count: 1, severity_breakdown: { MINOR: 1 }, avg_casualties: 0, market_share: 3.7 },
+          { company: "Tesla", accident_count: 1, severity_breakdown: { severe: 1 }, avg_casualties: 2.0, market_share: 3.7 }
+        ],
+        vehicle_stats: [
+          { make: "Chevrolet", model: "Bolt", accident_count: 2, most_common_damage: "side" },
+          { make: "Chrysler", model: "Pacifica", accident_count: 2, most_common_damage: "rear" },
+          { make: "Tesla", model: "Model 3", accident_count: 1, most_common_damage: "multiple" }
+        ],
+        city_stats: [
+          { city: "San Francisco", city_type: "urban", accident_count: 2, most_common_intersection_type: "stop sign", avg_severity: 2.0 },
+          { city: "Menlo Park", city_type: "suburban", accident_count: 1, most_common_intersection_type: "roundabout", avg_severity: 3.0 },
+          { city: "Mountain View", city_type: "suburban", accident_count: 1, most_common_intersection_type: "traffic light", avg_severity: 1.0 },
+          { city: "Palo Alto", city_type: "suburban", accident_count: 1, most_common_intersection_type: "traffic light", avg_severity: 1.0 }
+        ],
+        summary: {
+          total_accidents: 27,
+          trend_direction: "flat",
+          trend_percentage: 0.0,
+          most_dangerous_hour: "18:00",
+          most_common_severity: "MINOR"
+        }
+      },
+      status: "success",
+      message: null,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    return c.json({
+      error: "Internal Server Error",
+      message: error.message,
+      timestamp: new Date().toISOString()
+    }, 500);
+  }
+});
+
 // Get accidents with filtering (placeholder for now)
 app.get('/api/v1/accidents', async (c) => {
   try {
