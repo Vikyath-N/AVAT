@@ -1,0 +1,37 @@
+name = "avat-backend"
+main = "src/index.js"
+compatibility_date = "2024-09-02"
+account_id = "e3f5eea8cbc9a489d43c2790bcf97a45"
+
+# Production environment
+[env.production]
+# Set these in Cloudflare dashboard or via wrangler secret put
+# Neon PostgreSQL Database
+DATABASE_URL = "postgresql://avat_app:npg_MN95PdsCTzgy@ep-aged-leaf-adig818q.c-2.us-east-1.aws.neon.tech/avat_prod?sslmode=require"
+# SUPABASE_URL = "your_supabase_url"
+# SUPABASE_ANON_KEY = "your_supabase_anon_key"
+UPSTASH_REDIS_REST_URL = "https://distinct-rooster-15123.upstash.io"
+UPSTASH_REDIS_REST_TOKEN = "ATsTAAIncDI2NDVkODQxZjE4YTg0YWVjYjQ4ZjQyMmZiZDU4NjU5NHAyMTUxMjM"
+
+# Database configuration
+[[env.production.kv_namespaces]]
+binding = "AVAT_KV"
+id = "your_kv_namespace_id"
+preview_id = "your_kv_preview_id"
+
+# Development environment (optional)
+[env.preview]
+# Same secrets as production but for testing
+
+# Cron triggers for scheduled jobs
+[triggers]
+crons = [
+  # Daily DMV index sync at 3:00 UTC
+  "0 3 * * *",
+  # Daily PDF sync at 3:10 UTC (10 minutes after index sync)
+  "10 3 * * *"
+]
+
+# Local development
+[env.local]
+# Same configuration for local testing

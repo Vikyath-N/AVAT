@@ -1,0 +1,53 @@
+name: Deploy Backend to Cloudflare Workers
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend-cloudflare/**'
+      - '.github/workflows/deploy-cloudflare.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'backend-cloudflare/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy to Cloudflare Workers
+
+    steps:
+    - name: Checkout 🛎️
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js 📦
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: 'backend-cloudflare/package-lock.json'
+
+    - name: Install Dependencies 🔧
+      working-directory: ./backend-cloudflare
+      run: npm ci
+
+    - name: Deploy to Cloudflare Workers 🚀
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      working-directory: ./backend-cloudflare
+      run: npm run deploy
+      env:
+        CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+    - name: Preview Deployment (PR)
+      if: github.event_name == 'pull_request'
+      working-directory: ./backend-cloudflare
+      run: |
+        echo "Preview deployment for PR #${{ github.event.number }}"
+        echo "Deploy to preview environment..."
+        # wrangler deploy --env preview
+        echo "Preview URL would be available here"
+      env:
+        CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

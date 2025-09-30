@@ -94,7 +94,8 @@ app.add_middleware(
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "https://vikyath-n.github.io",
-        "https://avat.onrender.com"  # Production Render domain
+        "https://avat.onrender.com",  # Production Render domain
+        "https://avat-backend.vikyath-n.workers.dev"  # Cloudflare Workers domain
     ],
     allow_credentials=True,
     allow_methods=["*"],

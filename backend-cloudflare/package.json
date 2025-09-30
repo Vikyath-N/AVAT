@@ -1,0 +1,22 @@
+{
+  "name": "avat-backend-cloudflare",
+  "version": "1.0.0",
+  "description": "AVAT Backend on Cloudflare Workers",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "wrangler dev src/index.js",
+    "deploy": "wrangler deploy",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["cloudflare", "workers", "api", "autonomous-vehicles"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240902.0",
+    "wrangler": "^3.72.2"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.38.5",
+    "hono": "^4.0.0"
+  }
+}

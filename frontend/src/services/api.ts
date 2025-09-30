@@ -15,6 +15,26 @@ const api = axios.create({
   },
 });
 
+// Add response interceptor to handle different backend response formats
+api.interceptors.response.use(
+  (response) => {
+    // Handle Cloudflare Workers format (data wrapper) vs FastAPI format
+    if (response.data && typeof response.data === 'object') {
+      // If response has 'data' field and it's wrapped, extract it for frontend compatibility
+      if (response.data.data && response.data.status) {
+        return {
+          ...response,
+          data: response.data.data
+        };
+      }
+    }
+    return response;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
 // Request interceptor for logging
 api.interceptors.request.use(
   (config) => {
@@ -233,93 +253,7 @@ export const systemService = {
   }
 };
 
-/**
- * WebSocket Service for real-time updates
- */
-export class WebSocketService {
-  private ws: WebSocket | null = null;
-  private reconnectAttempts = 0;
-  private maxReconnectAttempts = 5;
-  private reconnectDelay = 1000;
-
-  connect(onMessage?: (data: any) => void, onError?: (error: Event) => void) {
-    const wsUrl = process.env.REACT_APP_WS_URL || 'ws://localhost:8000/ws';
-    
-    try {
-      this.ws = new WebSocket(wsUrl);
-
-      this.ws.onopen = () => {
-        console.log('🟢 WebSocket connected');
-        this.reconnectAttempts = 0;
-      };
-
-      this.ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          console.log('📨 WebSocket message:', data);
-          onMessage?.(data);
-        } catch (error) {
-          console.error('🔴 WebSocket message parse error:', error);
-        }
-      };
-
-      this.ws.onclose = () => {
-        console.log('🔴 WebSocket disconnected');
-        this.attemptReconnect(onMessage, onError);
-      };
-
-      this.ws.onerror = (error) => {
-        console.error('🔴 WebSocket error:', error);
-        onError?.(error);
-      };
-
-    } catch (error) {
-      console.error('🔴 WebSocket connection error:', error);
-      onError?.(error as Event);
-    }
-  }
-
-  private attemptReconnect(onMessage?: (data: any) => void, onError?: (error: Event) => void) {
-    if (this.reconnectAttempts < this.maxReconnectAttempts) {
-      this.reconnectAttempts++;
-      console.log(`🔄 Attempting WebSocket reconnect ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
-      
-      setTimeout(() => {
-        this.connect(onMessage, onError);
-      }, this.reconnectDelay * this.reconnectAttempts);
-    }
-  }
-
-  send(message: any) {
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify(message));
-    } else {
-      console.warn('🟡 WebSocket not connected, message not sent:', message);
-    }
-  }
-
-  subscribe(filters: any) {
-    this.send({
-      type: 'subscribe',
-      filters
-    });
-  }
-
-  ping() {
-    this.send({
-      type: 'ping',
-      timestamp: new Date().toISOString()
-    });
-  }
-
-  disconnect() {
-    if (this.ws) {
-      this.ws.close();
-      this.ws = null;
-    }
-  }
-}
-
-export const wsService = new WebSocketService();
+// Note: WebSocket functionality removed for Cloudflare Workers compatibility
+// Real-time updates will be implemented using polling or Server-Sent Events in the future
 
 export default api;

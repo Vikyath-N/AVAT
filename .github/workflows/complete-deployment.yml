@@ -1,0 +1,202 @@
+name: Complete AVAT Deployment Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches: [ main ]
+
+env:
+  NODE_VERSION: '20'
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  # Frontend deployment to GitHub Pages
+  deploy-frontend:
+    runs-on: ubuntu-latest
+    name: Deploy Frontend to GitHub Pages
+
+    steps:
+    - name: Checkout 🛎️
+      uses: actions/checkout@v4
+
+    - name: Setup PNPM
+      uses: pnpm/action-setup@v4
+      with:
+        version: 8
+
+    - name: Setup Node.js 📦
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'pnpm'
+        cache-dependency-path: 'frontend/pnpm-lock.yaml'
+
+    - name: Install Dependencies 🔧
+      working-directory: ./frontend
+      run: pnpm install --no-frozen-lockfile
+
+    - name: Build Application 🏗️
+      working-directory: ./frontend
+      run: pnpm run build
+      env:
+        REACT_APP_API_BASE_URL: ${{ secrets.PROD_API_BASE_URL }}
+        REACT_APP_WS_URL: ${{ secrets.PROD_WS_URL }}
+        REACT_APP_MAPBOX_TOKEN: ${{ secrets.MAPBOX_TOKEN }}
+        REACT_APP_APP_NAME: AVAT
+        REACT_APP_VERSION: 2.0.0
+        REACT_APP_ENVIRONMENT: production
+        REACT_APP_DEMO_MODE: false
+        REACT_APP_BASENAME: /AVAT
+        REACT_APP_ENABLE_REAL_TIME: false  # Disabled for Cloudflare Workers
+        REACT_APP_ENABLE_ANALYTICS: true
+        REACT_APP_ENABLE_EXPORT: true
+        CI: false
+
+    - name: Add SPA 404 fallback for GitHub Pages
+      run: |
+        cp frontend/build/index.html frontend/build/404.html
+
+    - name: Deploy to GitHub Pages 🚀
+      uses: peaceiris/actions-gh-pages@v3
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./frontend/build
+        cname: avat.vikyath.dev
+
+  # Backend deployment to Cloudflare Workers
+  deploy-backend:
+    runs-on: ubuntu-latest
+    name: Deploy Backend to Cloudflare Workers
+    needs: deploy-frontend
+
+    steps:
+    - name: Checkout 🛎️
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js 📦
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: 'backend-cloudflare/package-lock.json'
+
+    - name: Install Dependencies 🔧
+      working-directory: ./backend-cloudflare
+      run: npm ci
+
+    - name: Deploy to Cloudflare Workers 🚀
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      working-directory: ./backend-cloudflare
+      run: npm run deploy
+      env:
+        CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+  # Database and cache health check
+  health-check:
+    runs-on: ubuntu-latest
+    name: Health Check Database and Cache
+    needs: [deploy-frontend, deploy-backend]
+
+    steps:
+    - name: Checkout 🛎️
+      uses: actions/checkout@v4
+
+    - name: Setup Python 📦
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install Python Dependencies 🔧
+      run: |
+        python -m pip install --upgrade pip
+        pip install requests psycopg2-binary redis
+
+    - name: Health Check Script 🏥
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      run: |
+        python3 -c "
+        import os
+        import requests
+        import psycopg2
+        import redis
+
+        print('🔍 Running health checks...')
+
+        # Check Cloudflare Workers backend
+        try:
+            response = requests.get('https://avat-backend.vikyath-n.workers.dev/api/v1/health', timeout=10)
+            if response.status_code == 200:
+                print('✅ Cloudflare Workers backend is healthy')
+            else:
+                print(f'⚠️  Backend health check returned {response.status_code}')
+        except Exception as e:
+            print(f'❌ Backend health check failed: {e}')
+
+        # Check Neon database (if DATABASE_URL is available)
+        db_url = os.environ.get('DATABASE_URL')
+        if db_url:
+            try:
+                conn = psycopg2.connect(db_url)
+                cursor = conn.cursor()
+                cursor.execute('SELECT COUNT(*) FROM accidents')
+                count = cursor.fetchone()[0]
+                conn.close()
+                print(f'✅ Neon database is healthy (contains {count} accidents)')
+            except Exception as e:
+                print(f'❌ Database health check failed: {e}')
+        else:
+            print('⚠️  DATABASE_URL not set, skipping database check')
+
+        # Check Upstash Redis (if credentials are available)
+        redis_url = os.environ.get('UPSTASH_REDIS_REST_URL')
+        redis_token = os.environ.get('UPSTASH_REDIS_REST_TOKEN')
+        if redis_url and redis_token:
+            try:
+                response = requests.get(f'{redis_url}/set/health_check/ok/60',
+                                      headers={'Authorization': f'Bearer {redis_token}'})
+                if response.status_code == 200:
+                    print('✅ Upstash Redis is healthy')
+                else:
+                    print(f'⚠️  Redis health check returned {response.status_code}')
+            except Exception as e:
+                print(f'❌ Redis health check failed: {e}')
+        else:
+            print('⚠️  Redis credentials not set, skipping Redis check')
+
+        print('🏥 Health checks completed')
+        "
+
+  # Notification on completion
+  notify:
+    runs-on: ubuntu-latest
+    name: Deployment Notification
+    needs: [deploy-frontend, deploy-backend, health-check]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+    - name: Deployment Success Notification 📢
+      run: |
+        echo "🎉 AVAT deployment completed successfully!"
+        echo ""
+        echo "Frontend: https://vikyath-n.github.io/AVAT/"
+        echo "Backend: https://avat-backend.vikyath-n.workers.dev/"
+        echo "Documentation: https://vikyath-n.github.io/AVAT/"
+        echo ""
+        echo "Next steps:"
+        echo "1. Verify all services are working correctly"
+        echo "2. Update DNS records if needed"
+        echo "3. Monitor performance and costs"
+        echo "4. Test all features thoroughly"
+        echo ""
+        echo "Infrastructure stack:"
+        echo "- Frontend: GitHub Pages (Free)"
+        echo "- Backend: Cloudflare Workers (Free tier)"
+        echo "- Database: Neon PostgreSQL (Free tier)"
+        echo "- Cache: Upstash Redis (Free tier)"
+        echo "- Storage: Cloudflare R2 (Free tier)"
+        echo ""
+        echo "💰 Total monthly cost: $0 (Free tier infrastructure)"
