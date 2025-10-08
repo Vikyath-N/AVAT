@@ -90,8 +90,15 @@ const Dashboard: React.FC<DashboardProps> = ({ preferences }) => {
     loadDashboardData();
   }, [selectedTimeframe]);
 
-  // Mock data - in real app, this would come from API
-  const companyData = [
+  const COLORS = ['#3498db', '#e74c3c', '#f39c12', '#9b59b6', '#1abc9c'];
+
+  // Company data from real API or fallback
+  const companyData = dashboardData.analytics?.company_stats?.map((company: any, index: number) => ({
+    name: company.company,
+    accidents: company.accident_count,
+    color: COLORS[index % COLORS.length],
+    change: 0 // Could be calculated from historical data
+  })) || [
     { name: 'Waymo', accidents: 49, color: '#3498db', change: -8.2 },
     { name: 'Cruise', accidents: 41, color: '#e74c3c', change: -15.1 },
     { name: 'Tesla', accidents: 23, color: '#f39c12', change: +5.3 },
@@ -99,7 +106,12 @@ const Dashboard: React.FC<DashboardProps> = ({ preferences }) => {
     { name: 'Apple', accidents: 6, color: '#1abc9c', change: -25.0 }
   ];
 
-  const cityData = [
+  // City data from real API or fallback
+  const cityData = dashboardData.analytics?.city_stats?.map((city: any) => ({
+    name: city.city,
+    accidents: city.accident_count,
+    type: city.city_type || 'unknown'
+  })) || [
     { name: 'San Francisco', accidents: 89, type: 'urban' },
     { name: 'Mountain View', accidents: 67, type: 'suburban' },
     { name: 'Palo Alto', accidents: 45, type: 'suburban' },
@@ -142,7 +154,7 @@ const Dashboard: React.FC<DashboardProps> = ({ preferences }) => {
     },
     {
       title: 'Active Companies',
-      value: '12',
+      value: String(dashboardData.stats?.total_companies || 0),
       change: +8.3,
       icon: Car,
       color: 'text-tesla-blue',
@@ -150,7 +162,7 @@ const Dashboard: React.FC<DashboardProps> = ({ preferences }) => {
     },
     {
       title: 'Cities Monitored',
-      value: '45',
+      value: String(dashboardData.stats?.total_cities || 0),
       change: +2.1,
       icon: MapPin,
       color: 'text-tesla-green',
@@ -165,8 +177,6 @@ const Dashboard: React.FC<DashboardProps> = ({ preferences }) => {
       bgColor: 'bg-accent-warning/10'
     }
   ];
-
-  const COLORS = ['#3498db', '#e74c3c', '#f39c12', '#9b59b6', '#1abc9c'];
 
   useEffect(() => {
     // Simulate real-time updates
