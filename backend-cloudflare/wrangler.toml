@@ -15,8 +15,8 @@ UPSTASH_REDIS_REST_TOKEN = "ATsTAAIncDI2NDVkODQxZjE4YTg0YWVjYjQ4ZjQyMmZiZDU4NjU5
 
 # MCP Client Configuration
 # Set these via wrangler secret put
-# CLOUDFLARE_API_TOKEN = "EuX8PuAxdw9ek5QK9JpZ9vQ5oQnoqef0ZvkvhlW5"
-# CLOUDFLARE_ACCOUNT_ID = "e3f5eea8cbc9a489d43c2790bcf97a45"
+# CLOUDFLARE_API_TOKEN = "your_api_token"
+# CLOUDFLARE_ACCOUNT_ID = "your_account_id"
 
 # Database configuration
 [[env.production.kv_namespaces]]
