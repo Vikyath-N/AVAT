@@ -93,7 +93,7 @@ const Dashboard: React.FC<DashboardProps> = ({ preferences }) => {
   const COLORS = ['#3498db', '#e74c3c', '#f39c12', '#9b59b6', '#1abc9c'];
 
   // Company data from real API or fallback
-  const companyData = dashboardData.analytics?.company_stats?.map((company: {company: string; accident_count: number}, index: number) => ({
+  const companyData = dashboardData?.analytics?.company_stats?.map((company: {company: string; accident_count: number}, index: number) => ({
     name: company.company,
     accidents: company.accident_count,
     color: COLORS[index % COLORS.length],
@@ -107,7 +107,7 @@ const Dashboard: React.FC<DashboardProps> = ({ preferences }) => {
   ];
 
   // City data from real API or fallback
-  const cityData = dashboardData.analytics?.city_stats?.map((city: {city: string; accident_count: number; city_type: string}) => ({
+  const cityData = dashboardData?.analytics?.city_stats?.map((city: {city: string; accident_count: number; city_type: string}) => ({
     name: city.city,
     accidents: city.accident_count,
     type: city.city_type || 'unknown'
@@ -154,7 +154,7 @@ const Dashboard: React.FC<DashboardProps> = ({ preferences }) => {
     },
     {
       title: 'Active Companies',
-      value: String(dashboardData.stats?.total_companies || 0),
+      value: String(dashboardData?.stats?.total_companies || 0),
       change: +8.3,
       icon: Car,
       color: 'text-tesla-blue',
@@ -162,7 +162,7 @@ const Dashboard: React.FC<DashboardProps> = ({ preferences }) => {
     },
     {
       title: 'Cities Monitored',
-      value: String(dashboardData.stats?.total_cities || 0),
+      value: String(dashboardData?.stats?.total_cities || 0),
       change: +2.1,
       icon: MapPin,
       color: 'text-tesla-green',
