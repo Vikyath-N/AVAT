@@ -285,6 +285,62 @@ pnpm-lock.yaml
 scraping_logs/
 data_exports/
 test_data/
-
-
 sample_data/
+
+# Database dumps and exports (sensitive data)
+*.sql.gz
+*.sql.zip
+*-dump.sql
+*-backup.sql
+*-export.sql
+neon-data-import*.sql
+neon-complete-setup*.sql
+*_backup_*.sql
+database-dump-*.sql
+
+# Database query result exports (may contain sensitive data)
+*_neondb_*.json
+rapid-lab-*.json
+query-results-*.json
+
+# Deployment/setup documentation with credentials
+DEPLOYMENT-SUCCESS.md
+NEON-PERMISSION-FIX.md
+NEON-FINAL-SETUP-INSTRUCTIONS.md
+REAL-DATA-SETUP-SUMMARY.md
+*-SETUP-INSTRUCTIONS.md
+*-PERMISSION*.md
+
+# Connection string files
+connection-strings.txt
+database-urls.txt
+credentials.txt
+secrets.txt
+*-credentials.*
+*-secrets.*
+
+# Temporary SQL files
+temp.sql
+test.sql
+debug.sql
+scratch.sql
+
+# API keys and tokens (additional patterns)
+*.key
+*.pem
+*.cert
+*.crt
+*-key.json
+service-account*.json
+
+# Local configuration overrides
+.env.override
+.env.secrets
+wrangler.toml.local
+config.local.*
+
+# Database schema snapshots (may contain sensitive structure)
+# Note: Keep neon-schema-corrected.sql for version control
+# But ignore temporary schema dumps
+schema-dump-*.sql
+pg_dump-*.sql

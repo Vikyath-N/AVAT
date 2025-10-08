@@ -3,6 +3,7 @@ import { cors } from 'hono/cors';
 import { createClient } from '@supabase/supabase-js';
 import { scheduledIndexSync, scheduledPDFSync } from './scheduler';
 import { CloudflareMCPClient } from './mcp-client.js';
+import postgres from 'postgres';
 
 // Initialize Hono app
 const app = new Hono();
@@ -39,6 +40,25 @@ app.use('/*', cors({
 
 // Environment variables (set in Cloudflare dashboard or wrangler.toml)
 // Note: In Cloudflare Workers, these will be passed from request context
+
+// Helper function to create a Neon PostgreSQL connection
+async function createNeonClient(databaseUrl) {
+  const sql = postgres(databaseUrl, {
+    ssl: 'require',
+    max: 1, // Cloudflare Workers should use minimal connections
+    idle_timeout: 20,
+    connect_timeout: 10,
+  });
+  
+  // Set search_path to include avat_app schema
+  try {
+    await sql`SET search_path TO avat_app, public`;
+  } catch (e) {
+    console.log('Note: Could not set search_path, using default schema');
+  }
+  
+  return sql;
+}
 
 // Helper function to query Upstash Redis
 async function redisGet(key, upstashUrl, upstashToken) {
@@ -127,20 +147,45 @@ app.get('/api/v1/health', async (c) => {
 // Get system stats
 app.get('/api/v1/stats', async (c) => {
   try {
-    return c.json({
-      data: {
-        total_accidents: 27,
-        total_companies: 5,
-        total_cities: 4,
-        data_freshness: new Date().toISOString(),
-        update_frequency: "15 minutes",
-        api_version: "2.0.0",
-        database_size: "1.2 MB"
-      },
-      status: "success",
-      timestamp: new Date().toISOString()
-    });
+    const databaseUrl = c.env.DATABASE_URL;
+    if (!databaseUrl) {
+      throw new Error('DATABASE_URL not configured');
+    }
+
+    const sql = await createNeonClient(databaseUrl);
+
+    try {
+      // Query real stats from the database
+      const [stats] = await sql`
+        SELECT 
+          COUNT(*) as total_accidents,
+          COUNT(DISTINCT company) as total_companies,
+          COUNT(DISTINCT city) as total_cities,
+          MAX(created_at) as last_update
+        FROM accidents
+      `;
+
+      await sql.end();
+
+      return c.json({
+        data: {
+          total_accidents: parseInt(stats.total_accidents),
+          total_companies: parseInt(stats.total_companies),
+          total_cities: parseInt(stats.total_cities),
+          data_freshness: stats.last_update,
+          update_frequency: "daily",
+          api_version: "2.0.0",
+          database_size: "1.2 MB"
+        },
+        status: "success",
+        timestamp: new Date().toISOString()
+      });
+    } catch (dbError) {
+      await sql.end();
+      throw dbError;
+    }
   } catch (error) {
+    console.error('Stats error:', error);
     return c.json({
       error: "Internal Server Error",
       message: error.message,
@@ -152,39 +197,85 @@ app.get('/api/v1/stats', async (c) => {
 // Get analytics overview
 app.get('/api/v1/analytics/overview', async (c) => {
   try {
-    return c.json({
-      data: {
-        company_stats: [
-          { company: "Waymo", accident_count: 20, severity_breakdown: { MINOR: 18, minor: 2 }, avg_casualties: 0, market_share: 74.07 },
-          { company: "Zoox", accident_count: 3, severity_breakdown: { MINOR: 2 }, avg_casualties: 0, market_share: 11.11 },
-          { company: "Cruise", accident_count: 2, severity_breakdown: { moderate: 2 }, avg_casualties: 0.5, market_share: 7.41 },
-          { company: "Ohmio", accident_count: 1, severity_breakdown: { MINOR: 1 }, avg_casualties: 0, market_share: 3.7 },
-          { company: "Tesla", accident_count: 1, severity_breakdown: { severe: 1 }, avg_casualties: 2.0, market_share: 3.7 }
-        ],
-        vehicle_stats: [
-          { make: "Chevrolet", model: "Bolt", accident_count: 2, most_common_damage: "side" },
-          { make: "Chrysler", model: "Pacifica", accident_count: 2, most_common_damage: "rear" },
-          { make: "Tesla", model: "Model 3", accident_count: 1, most_common_damage: "multiple" }
-        ],
-        city_stats: [
-          { city: "San Francisco", city_type: "urban", accident_count: 2, most_common_intersection_type: "stop sign", avg_severity: 2.0 },
-          { city: "Menlo Park", city_type: "suburban", accident_count: 1, most_common_intersection_type: "roundabout", avg_severity: 3.0 },
-          { city: "Mountain View", city_type: "suburban", accident_count: 1, most_common_intersection_type: "traffic light", avg_severity: 1.0 },
-          { city: "Palo Alto", city_type: "suburban", accident_count: 1, most_common_intersection_type: "traffic light", avg_severity: 1.0 }
-        ],
-        summary: {
-          total_accidents: 27,
-          trend_direction: "flat",
-          trend_percentage: 0.0,
-          most_dangerous_hour: "18:00",
-          most_common_severity: "MINOR"
-        }
-      },
-      status: "success",
-      message: null,
-      timestamp: new Date().toISOString()
-    });
+    const databaseUrl = c.env.DATABASE_URL;
+    if (!databaseUrl) {
+      throw new Error('DATABASE_URL not configured');
+    }
+
+    const sql = await createNeonClient(databaseUrl);
+
+    try {
+      // Query company stats
+      const companyStats = await sql`
+        SELECT 
+          company,
+          COUNT(*) as accident_count,
+          AVG(COALESCE(casualties, 0)) as avg_casualties,
+          COUNT(*) * 100.0 / SUM(COUNT(*)) OVER () as market_share
+        FROM accidents
+        WHERE company IS NOT NULL
+        GROUP BY company
+        ORDER BY accident_count DESC
+      `;
+
+      // Query city stats
+      const cityStats = await sql`
+        SELECT 
+          city,
+          city_type,
+          COUNT(*) as accident_count,
+          intersection_type as most_common_intersection_type
+        FROM accidents
+        WHERE city IS NOT NULL
+        GROUP BY city, city_type, intersection_type
+        ORDER BY accident_count DESC
+        LIMIT 10
+      `;
+
+      // Query summary stats
+      const [summary] = await sql`
+        SELECT 
+          COUNT(*) as total_accidents,
+          damage_severity as most_common_severity
+        FROM accidents
+        GROUP BY damage_severity
+        ORDER BY COUNT(*) DESC
+        LIMIT 1
+      `;
+
+      await sql.end();
+
+      return c.json({
+        data: {
+          company_stats: companyStats.map(row => ({
+            company: row.company,
+            accident_count: parseInt(row.accident_count),
+            avg_casualties: parseFloat(row.avg_casualties).toFixed(1),
+            market_share: parseFloat(row.market_share).toFixed(2)
+          })),
+          city_stats: cityStats.map(row => ({
+            city: row.city,
+            city_type: row.city_type,
+            accident_count: parseInt(row.accident_count),
+            most_common_intersection_type: row.most_common_intersection_type
+          })),
+          summary: {
+            total_accidents: parseInt(summary.total_accidents),
+            trend_direction: "stable",
+            trend_percentage: 0.0,
+            most_common_severity: summary.most_common_severity || "MINOR"
+          }
+        },
+        status: "success",
+        message: null,
+        timestamp: new Date().toISOString()
+      });
+    } catch (dbError) {
+      await sql.end();
+      throw dbError;
+    }
   } catch (error) {
+    console.error('Analytics error:', error);
     return c.json({
       error: "Internal Server Error",
       message: error.message,
@@ -193,23 +284,81 @@ app.get('/api/v1/analytics/overview', async (c) => {
   }
 });
 
-// Get accidents with filtering (placeholder for now)
+// Get accidents with filtering
 app.get('/api/v1/accidents', async (c) => {
   try {
-    // For now, return a placeholder response
-    // TODO: Implement direct PostgreSQL queries when schema is ready
+    const databaseUrl = c.env.DATABASE_URL;
+    if (!databaseUrl) {
+      throw new Error('DATABASE_URL not configured');
+    }
 
-    return c.json({
-      data: [],
-      status: 'success',
-      timestamp: new Date().toISOString(),
-      message: 'Database connected successfully. Schema migration needed.',
-      pagination: {
-        limit: 100,
-        offset: 0,
-        count: 0
+    const sql = await createNeonClient(databaseUrl);
+
+    try {
+      // Get query parameters
+      const { 
+        limit = 100, 
+        offset = 0, 
+        company, 
+        city, 
+        severity,
+        start_date,
+        end_date
+      } = c.req.query();
+
+      // Build dynamic query based on filters
+      let query = sql`
+        SELECT 
+          id, timestamp, company, vehicle_make, vehicle_model,
+          location_address, location_lat, location_lng,
+          city, county, city_type, intersection_type,
+          damage_severity, weather_conditions, time_of_day,
+          casualties, av_mode, speed_limit, traffic_signals,
+          road_type, damage_location, report_url, created_at
+        FROM accidents
+        WHERE 1=1
+      `;
+
+      // Apply filters (basic implementation)
+      if (company) {
+        query = sql`${query} AND company = ${company}`;
       }
-    });
+      if (city) {
+        query = sql`${query} AND city = ${city}`;
+      }
+      if (severity) {
+        query = sql`${query} AND damage_severity = ${severity}`;
+      }
+
+      // Add ordering and pagination
+      const accidents = await sql`
+        ${query}
+        ORDER BY timestamp DESC
+        LIMIT ${parseInt(limit)}
+        OFFSET ${parseInt(offset)}
+      `;
+
+      // Get total count
+      const [countResult] = await sql`
+        SELECT COUNT(*) as total FROM accidents
+      `;
+
+      await sql.end();
+
+      return c.json({
+        data: accidents,
+        status: 'success',
+        timestamp: new Date().toISOString(),
+        pagination: {
+          limit: parseInt(limit),
+          offset: parseInt(offset),
+          total: parseInt(countResult.total)
+        }
+      });
+    } catch (dbError) {
+      await sql.end();
+      throw dbError;
+    }
   } catch (error) {
     console.error('Error fetching accidents:', error);
     return c.json({
@@ -283,11 +432,16 @@ app.get('/api/v1/filters/options', async (c) => {
 // MCP Client endpoints
 app.get('/mcp/bindings', async (c) => {
   try {
+    // Debug: Log environment variables
+    console.log('Environment variables available:', Object.keys(c.env));
+    console.log('CLOUDFLARE_API_TOKEN present:', !!c.env.CLOUDFLARE_API_TOKEN);
+    console.log('CLOUDFLARE_ACCOUNT_ID present:', !!c.env.CLOUDFLARE_ACCOUNT_ID);
+
     // Initialize MCP client if not already done
     if (!mcpClient) {
       mcpClient = new CloudflareMCPClient(c.env);
     }
-    
+
     // Get available bindings
     const bindings = await mcpClient.getAvailableBindings();
     return c.json({
@@ -395,7 +549,7 @@ app.get('/mcp/info', (c) => {
       'getWorkerLogs',
       'getWorkerMetrics'
     ],
-    serverUrl: 'https://bindings.mcp.cloudflare.com/sse',
+    serverUrl: 'https://api.cloudflare.com/client/v4',
     timestamp: new Date().toISOString()
   });
 });
