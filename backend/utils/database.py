@@ -13,11 +13,32 @@ DATABASE_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), '..', '
 
 def _is_postgres_available():
     """Check if PostgreSQL is configured"""
-    return 'DATABASE_URL' in os.environ
+    db_url = os.environ.get('DATABASE_URL', '')
+    # Return True only if DATABASE_URL is set AND it's a PostgreSQL URL
+    return 'DATABASE_URL' in os.environ and db_url.startswith('postgresql://')
 
 def _get_database_url():
     """Get database URL for PostgreSQL"""
     return os.environ.get('DATABASE_URL')
+
+def _get_sqlite_path():
+    """Get SQLite database path from DATABASE_URL or default"""
+    db_url = os.environ.get('DATABASE_URL', '')
+    if db_url.startswith('sqlite:///'):
+        # Extract path from sqlite:///path/to/db.db
+        return db_url.replace('sqlite:///', '')
+    return DATABASE_PATH
+
+def get_placeholder():
+    """Get SQL placeholder for current database (? for SQLite, %s for PostgreSQL)"""
+    return '%s' if _is_postgres_available() else '?'
+
+def get_insert_ignore_syntax():
+    """Get INSERT ... IGNORE syntax for current database"""
+    if _is_postgres_available():
+        return "INSERT", "ON CONFLICT DO NOTHING"
+    else:
+        return "INSERT OR IGNORE", ""
 
 @contextmanager
 def get_db_connection():
@@ -32,7 +53,8 @@ def get_db_connection():
             conn.close()
     else:
         # Use SQLite
-        conn = sqlite3.connect(DATABASE_PATH)
+        sqlite_path = _get_sqlite_path()
+        conn = sqlite3.connect(sqlite_path)
         conn.row_factory = sqlite3.Row  # Enable column access by name
         try:
             yield conn

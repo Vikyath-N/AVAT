@@ -15,7 +15,7 @@ from datetime import datetime
 from typing import List, Optional, Dict, Any
 from bs4 import BeautifulSoup
 
-from ..utils.database import get_db_connection
+from ..utils.database import get_db_connection, get_placeholder, get_insert_ignore_syntax
 from ..utils.logger import get_logger
 from ..utils.pdf_parser import (
     extract_text_and_pages,
@@ -189,13 +189,26 @@ class DMVScraperService:
     # -------- Phase 2 methods --------
     def download_pdf(self, report_id: int) -> Optional[Dict[str, Any]]:
         """Download PDF for a report row and record metadata (dmv_pdf_files)."""
+        placeholder = get_placeholder()
         with get_db_connection() as conn:
             cur = conn.cursor()
-            cur.execute("SELECT id, pdf_url, year, manufacturer, source_slug FROM dmv_reports WHERE id = ?", (report_id,))
+            cur.execute(f"SELECT id, pdf_url, year, manufacturer, source_slug FROM dmv_reports WHERE id = {placeholder}", (report_id,))
             row = cur.fetchone()
-            if not row or not row[1]:
+            if not row:
                 return None
-            _id, pdf_url, year, manufacturer, slug = row
+            
+            # Handle both dict (PostgreSQL) and tuple (SQLite) formats
+            if isinstance(row, dict):
+                _id = row['id']
+                pdf_url = row['pdf_url']
+                year = row['year']
+                manufacturer = row['manufacturer']
+                slug = row['source_slug']
+            else:
+                _id, pdf_url, year, manufacturer, slug = row
+            
+            if not pdf_url:
+                return None
 
         import os
         base_data_dir = os.environ.get("AVAT_DATA_DIR", "/Users/vikyath/Projects/AVAT/data/pdfs")
@@ -217,18 +230,20 @@ class DMVScraperService:
         text, pages = extract_text_and_pages(dest_path)
         size = len(open(dest_path, 'rb').read())
 
+        insert_cmd, conflict_clause = get_insert_ignore_syntax()
         with get_db_connection() as conn:
             cur = conn.cursor()
             # upsert into dmv_pdf_files
             cur.execute(
-                """
-                INSERT OR IGNORE INTO dmv_pdf_files (report_id, local_path, size_bytes, pages, sha256)
-                VALUES (?, ?, ?, ?, ?)
+                f"""
+                {insert_cmd} INTO dmv_pdf_files (report_id, local_path, size_bytes, pages, sha256)
+                VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})
+                {conflict_clause}
                 """,
                 (report_id, dest_path, size, pages, sha)
             )
             # update report status and sha
-            cur.execute("UPDATE dmv_reports SET pdf_sha256 = ?, status = 'downloaded' WHERE id = ?", (sha, report_id))
+            cur.execute(f"UPDATE dmv_reports SET pdf_sha256 = {placeholder}, status = 'downloaded' WHERE id = {placeholder}", (sha, report_id))
             conn.commit()
 
         return {"path": dest_path, "sha256": sha, "pages": pages, "text": text}
@@ -298,12 +313,21 @@ class DMVScraperService:
         if not record:
             record = EnhancedAccident(raw_text=text)
 
+        placeholder = get_placeholder()
         with get_db_connection() as conn:
             cur = conn.cursor()
-            cur.execute("SELECT manufacturer, incident_date FROM dmv_reports WHERE id = ?", (report_id,))
+            cur.execute(f"SELECT manufacturer, incident_date FROM dmv_reports WHERE id = {placeholder}", (report_id,))
             m = cur.fetchone()
-            manufacturer = m[0] if m else None
-            incident_date = m[1] if m else None
+            if m:
+                if isinstance(m, dict):
+                    manufacturer = m['manufacturer']
+                    incident_date = m['incident_date']
+                else:
+                    manufacturer = m[0]
+                    incident_date = m[1]
+            else:
+                manufacturer = None
+                incident_date = None
 
             # Attempt damage diagram extraction
             try:
@@ -327,14 +351,17 @@ class DMVScraperService:
             sections_merged = deep_merge(base_sections, region_sections)
             form_sections_json = json.dumps(sections_merged)
 
+            # Build placeholders for INSERT
+            placeholders = ', '.join([placeholder] * 28)  # 28 values + 1 hardcoded 'dmv_pdf'
+            
             cur.execute(
-                """
+                f"""
                 INSERT INTO accidents (
                     timestamp, company, vehicle_make, vehicle_model, location_address, location_lat, location_lng, city, county, city_type,
                     intersection_type, damage_severity, weather_conditions, time_of_day, casualties, av_mode, speed_limit, traffic_signals, road_type,
                     damage_location, raw_text, report_url, source, source_report_id, pdf_url, pdf_local_path,
                     damage_diagram_path, damage_quadrants, form_sections
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'dmv_pdf', ?, ?, ?, ?, ?, ?)
+                ) VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, 'dmv_pdf', {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})
                 """,
                 (
                     record.timestamp, manufacturer or record.company, record.vehicle_make, record.vehicle_model, record.location_address, record.location_lat, record.location_lng,
@@ -344,7 +371,7 @@ class DMVScraperService:
                 )
             )
             accident_id = cur.lastrowid
-            cur.execute("UPDATE dmv_reports SET status = 'parsed' WHERE id = ?", (report_id,))
+            cur.execute(f"UPDATE dmv_reports SET status = 'parsed' WHERE id = {placeholder}", (report_id,))
             conn.commit()
             return accident_id
 
@@ -353,12 +380,19 @@ class DMVScraperService:
         downloaded = 0
         parsed = 0
         errors = 0
+        placeholder = get_placeholder()
         with get_db_connection() as conn:
             cur = conn.cursor()
-            cur.execute("SELECT id, pdf_url FROM dmv_reports WHERE (status = 'new' OR status = 'downloaded') AND pdf_url IS NOT NULL ORDER BY incident_date DESC LIMIT ?", (limit,))
+            cur.execute(f"SELECT id, pdf_url FROM dmv_reports WHERE (status = 'new' OR status = 'downloaded') AND pdf_url IS NOT NULL ORDER BY incident_date DESC LIMIT {placeholder}", (limit,))
             rows = cur.fetchall()
 
-        for (report_id, pdf_url) in rows:
+        for row in rows:
+            # Handle both dict (PostgreSQL) and tuple (SQLite) formats
+            if isinstance(row, dict):
+                report_id = row['id']
+                pdf_url = row['pdf_url']
+            else:
+                report_id, pdf_url = row
             try:
                 meta = self.download_pdf(report_id)
                 if meta:

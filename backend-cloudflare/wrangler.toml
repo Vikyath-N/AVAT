@@ -47,12 +47,11 @@ bucket_name = "avat-r2"
 # Same secrets as production but for testing
 
 # Cron triggers for scheduled jobs
+# See: https://developers.cloudflare.com/workers/configuration/cron-triggers/
 [triggers]
 crons = [
-  # Daily DMV index sync at 3:00 UTC
-  "0 3 * * *",
-  # Daily PDF sync at 3:10 UTC (10 minutes after index sync)
-  "10 3 * * *"
+  # Daily DMV scraper at 5:00 AM UTC
+  "0 5 * * *"
 ]
 
 # Local development

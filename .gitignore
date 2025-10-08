@@ -287,6 +287,9 @@ data_exports/
 test_data/
 sample_data/
 
+# PDF files (downloaded accident reports - too large for git)
+data/pdfs/**/*.pdf
+
 # Local development directory (entire directory ignored)
 local/
 !local/.gitkeep

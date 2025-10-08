@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import { scheduledIndexSync, scheduledPDFSync } from './scheduler';
 import { CloudflareMCPClient } from './mcp-client.js';
 import postgres from 'postgres';
+import { runDMVScraper, handleScrapeRequest } from './dmv-scraper.js';
 
 // Initialize Hono app
 const app = new Hono();
@@ -600,5 +601,93 @@ app.onError((err, c) => {
     timestamp: new Date().toISOString()
   }, 500);
 });
+
+// ==================== DMV SCRAPER ENDPOINTS ====================
+
+// Manual trigger for DMV scraper
+app.post('/api/v1/scraper/dmv/run', async (c) => {
+  try {
+    return await handleScrapeRequest(c.req.raw, c.env);
+  } catch (error) {
+    console.error('Scraper endpoint error:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Get scraper status and statistics
+app.get('/api/v1/scraper/status', async (c) => {
+  try {
+    const databaseUrl = c.env.DATABASE_URL;
+    const sql = await createNeonClient(databaseUrl);
+    
+    try {
+      // Get latest scrape run
+      const [latestRun] = await sql`
+        SELECT * FROM dmv_scrape_runs 
+        ORDER BY started_at DESC 
+        LIMIT 1
+      `;
+      
+      // Count total reports
+      const [counts] = await sql`
+        SELECT 
+          COUNT(*) as total_reports,
+          COUNT(DISTINCT manufacturer) as total_companies,
+          MIN(incident_date) as earliest_date,
+          MAX(incident_date) as latest_date
+        FROM dmv_reports
+      `;
+      
+      // Count by status
+      const statusCounts = await sql`
+        SELECT status, COUNT(*) as count
+        FROM dmv_reports
+        GROUP BY status
+      `;
+      
+      await sql.end();
+      
+      return c.json({
+        latest_run: latestRun || null,
+        statistics: counts || {},
+        status_breakdown: statusCounts || [],
+        timestamp: new Date().toISOString()
+      });
+    } catch (dbError) {
+      await sql.end();
+      throw dbError;
+    }
+  } catch (error) {
+    console.error('Scraper status error:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// ==================== CRON SCHEDULED HANDLER ====================
+
+/**
+ * Cloudflare Workers Cron Trigger Handler
+ * Runs daily at 5:00 AM UTC to scrape DMV collision reports
+ */
+export async function scheduled(event, env, ctx) {
+  console.log('⏰ Cron trigger: Running scheduled DMV scraper at', new Date().toISOString());
+  
+  try {
+    // Run the DMV scraper
+    const result = await runDMVScraper(env);
+    
+    console.log('✅ Scheduled scrape complete:', JSON.stringify(result, null, 2));
+    
+    // Optional: Send notification if there are errors
+    if (!result.success || result.stats?.errors > 0) {
+      console.error('⚠️ Scraper completed with errors:', result);
+    }
+    
+    return result;
+  } catch (error) {
+    console.error('❌ Scheduled scrape failed:', error);
+    return { success: false, error: error.message };
+  }
+}
 
 export default app;

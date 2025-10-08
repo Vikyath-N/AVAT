@@ -1,0 +1,135 @@
+name: Parse New DMV PDFs
+
+on:
+  schedule:
+    # Run at 5:30 AM UTC (30 min after scraper finishes at 5:00 AM)
+    - cron: '30 5 * * *'
+  
+  # Allow manual trigger for testing
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: 'Max PDFs to process'
+        required: false
+        default: '10'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pdf-parser
+  cancel-in-progress: false
+
+jobs:
+  parse-pdfs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: Install system dependencies (OCR)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y poppler-utils tesseract-ocr
+          tesseract --version
+          echo "✅ OCR tools installed"
+      
+      - name: Install Python dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          echo "✅ Python dependencies installed"
+      
+      - name: Copy enhanced_data_pipeline to root
+        run: |
+          if [ -f "local/scripts/enhanced_data_pipeline.py" ]; then
+            cp local/scripts/enhanced_data_pipeline.py .
+            echo "✅ Copied enhanced_data_pipeline.py"
+          fi
+      
+      - name: Parse new PDFs
+        env:
+          DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+        run: |
+          python3 << 'PYTHON_EOF'
+          import os
+          import sys
+          from datetime import datetime
+          
+          # Set database to Neon
+          os.environ['DATABASE_URL'] = os.environ.get('DATABASE_URL', '')
+          
+          from backend.services.dmv_scraper_service import DMVScraperService
+          from backend.utils.database import get_db_connection
+          
+          print("=" * 60)
+          print(f"🤖 AUTOMATED PDF PARSING - {datetime.now()}")
+          print("=" * 60)
+          
+          # Check pending PDFs
+          try:
+              with get_db_connection() as conn:
+                  cur = conn.cursor()
+                  cur.execute("SELECT COUNT(*) FROM dmv_reports WHERE status='new'")
+                  pending = cur.fetchone()[0]
+                  print(f"📋 Pending PDFs: {pending}")
+          except Exception as e:
+              print(f"❌ Database connection error: {e}")
+              sys.exit(1)
+          
+          if pending == 0:
+              print("✅ No new PDFs to process. All done!")
+              sys.exit(0)
+          
+          # Process up to limit PDFs per run
+          limit = ${{ github.event.inputs.limit || 10 }}
+          print(f"🚀 Processing up to {limit} PDFs...")
+          
+          scraper = DMVScraperService()
+          try:
+              result = scraper.sync_pdfs(limit=limit)
+          except Exception as e:
+              print(f"❌ Processing error: {e}")
+              import traceback
+              traceback.print_exc()
+              sys.exit(1)
+          
+          print()
+          print("📊 Results:")
+          print(f"   Downloaded: {result.get('downloaded', 0)}")
+          print(f"   Parsed: {result.get('parsed', 0)}")
+          print(f"   Errors: {result.get('errors', 0)}")
+          
+          # Verify
+          try:
+              with get_db_connection() as conn:
+                  cur = conn.cursor()
+                  cur.execute("SELECT COUNT(*) FROM accidents")
+                  total = cur.fetchone()[0]
+                  print(f"   Total accidents now: {total}")
+          except Exception as e:
+              print(f"⚠️  Could not verify total: {e}")
+          
+          print("=" * 60)
+          if result.get('errors', 0) > limit / 2:
+              print(f"⚠️  High error rate: {result['errors']}/{limit}")
+              sys.exit(1)
+          else:
+              print("✅ SUCCESS!")
+          PYTHON_EOF
+      
+      - name: Summary
+        if: always()
+        run: |
+          echo "### PDF Processing Complete! 🎉" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Check logs above for details." >> $GITHUB_STEP_SUMMARY
+
