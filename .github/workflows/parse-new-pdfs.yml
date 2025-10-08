@@ -55,9 +55,15 @@ jobs:
             echo "✅ Copied enhanced_data_pipeline.py"
           fi
       
+      - name: Create PDF storage directory
+        run: |
+          mkdir -p ./data/pdfs
+          echo "✅ PDF storage directory created"
+      
       - name: Parse new PDFs
         env:
           DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+          AVAT_DATA_DIR: ./data/pdfs
         run: |
           python3 << 'PYTHON_EOF'
           import os
