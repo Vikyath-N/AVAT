@@ -18,7 +18,7 @@ UPSTASH_REDIS_REST_TOKEN = "your_upstash_token"
 # CLOUDFLARE_API_TOKEN = "your_api_token"
 # CLOUDFLARE_ACCOUNT_ID = "your_account_id"
 
-# Database configuration
+# KV namespace binding for AVAT data
 [[env.production.kv_namespaces]]
 binding = "AVAT_KV"
 id = "your_kv_namespace_id"

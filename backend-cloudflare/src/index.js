@@ -38,16 +38,14 @@ app.use('/*', cors({
 }));
 
 // Environment variables (set in Cloudflare dashboard or wrangler.toml)
-const DATABASE_URL = 'YOUR_DATABASE_URL';
-const UPSTASH_REDIS_REST_URL = process.env.UPSTASH_REDIS_REST_URL || 'https://your-redis.upstash.io';
-const UPSTASH_REDIS_REST_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN || 'your_upstash_token';
+// Note: In Cloudflare Workers, these will be passed from request context
 
 // Helper function to query Upstash Redis
-async function redisGet(key) {
+async function redisGet(key, upstashUrl, upstashToken) {
   try {
-    const response = await fetch(`${UPSTASH_REDIS_REST_URL}/get/${key}`, {
+    const response = await fetch(`${upstashUrl}/get/${key}`, {
       headers: {
-        'Authorization': `Bearer ${UPSTASH_REDIS_REST_TOKEN}`
+        'Authorization': `Bearer ${upstashToken}`
       }
     });
     const data = await response.json();
@@ -58,17 +56,17 @@ async function redisGet(key) {
   }
 }
 
-async function redisSet(key, value, ttl = null) {
+async function redisSet(key, value, ttl = null, upstashUrl, upstashToken) {
   try {
     const body = { value: JSON.stringify(value) };
     if (ttl) {
       body.px = ttl;
     }
 
-    const response = await fetch(`${UPSTASH_REDIS_REST_URL}/set/${key}`, {
+    const response = await fetch(`${upstashUrl}/set/${key}`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${UPSTASH_REDIS_REST_TOKEN}`,
+        'Authorization': `Bearer ${upstashToken}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(body)
@@ -85,13 +83,14 @@ app.get('/api/v1/health', async (c) => {
   try {
     // Test database connection directly
     let accidentCount = 0;
-    if (DATABASE_URL) {
+    const databaseUrl = c.env.DATABASE_URL || 'YOUR_DATABASE_URL';
+    if (databaseUrl && databaseUrl !== 'YOUR_DATABASE_URL') {
       try {
         // Simple database connectivity test
-        const response = await fetch(`${DATABASE_URL.replace('postgresql://', 'https://')}/?query=SELECT+1`, {
+        const response = await fetch(`${databaseUrl.replace('postgresql://', 'https://')}/?query=SELECT+1`, {
           method: 'GET',
           headers: {
-            'Authorization': `Bearer ${DATABASE_URL.split('@')[0].split(':')[2] || ''}`
+            'Authorization': `Bearer ${databaseUrl.split('@')[0].split(':')[2] || ''}`
           }
         });
         accidentCount = response.ok ? 'connected' : 'error';
@@ -100,8 +99,10 @@ app.get('/api/v1/health', async (c) => {
       }
     }
 
-    // Test Redis connection
-    const redisTest = await redisSet('health_test', 'ok', 5000);
+    // Test Redis connection - get environment variables from Cloudflare context
+    const upstashUrl = c.env.UPSTASH_REDIS_REST_URL || 'https://your-redis.upstash.io';
+    const upstashToken = c.env.UPSTASH_REDIS_REST_TOKEN || 'your_upstash_token';
+    const redisTest = await redisSet('health_test', 'ok', 5000, upstashUrl, upstashToken);
 
     return c.json({
       status: 'healthy',
