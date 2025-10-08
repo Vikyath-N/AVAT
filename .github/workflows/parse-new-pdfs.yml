@@ -78,11 +78,14 @@ jobs:
           try:
               with get_db_connection() as conn:
                   cur = conn.cursor()
-                  cur.execute("SELECT COUNT(*) FROM dmv_reports WHERE status='new'")
-                  pending = cur.fetchone()[0]
+                  cur.execute("SELECT COUNT(*) as count FROM dmv_reports WHERE status='new'")
+                  row = cur.fetchone()
+                  pending = row['count'] if isinstance(row, dict) else row[0]
                   print(f"📋 Pending PDFs: {pending}")
           except Exception as e:
               print(f"❌ Database connection error: {e}")
+              import traceback
+              traceback.print_exc()
               sys.exit(1)
           
           if pending == 0:
@@ -112,8 +115,9 @@ jobs:
           try:
               with get_db_connection() as conn:
                   cur = conn.cursor()
-                  cur.execute("SELECT COUNT(*) FROM accidents")
-                  total = cur.fetchone()[0]
+                  cur.execute("SELECT COUNT(*) as count FROM accidents")
+                  row = cur.fetchone()
+                  total = row['count'] if isinstance(row, dict) else row[0]
                   print(f"   Total accidents now: {total}")
           except Exception as e:
               print(f"⚠️  Could not verify total: {e}")
