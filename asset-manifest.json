@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/AVAT/static/css/main.3e2a9aab.css",
-    "main.js": "/AVAT/static/js/main.8cbbf90c.js",
-    "static/js/33.2183c46f.chunk.js": "/AVAT/static/js/33.2183c46f.chunk.js",
+    "main.css": "/AVAT/static/css/main.9d10e9e2.css",
+    "main.js": "/AVAT/static/js/main.8791e0ed.js",
+    "static/js/893.e4c7e7d9.chunk.js": "/AVAT/static/js/893.e4c7e7d9.chunk.js",
     "index.html": "/AVAT/index.html",
-    "main.3e2a9aab.css.map": "/AVAT/static/css/main.3e2a9aab.css.map",
-    "main.8cbbf90c.js.map": "/AVAT/static/js/main.8cbbf90c.js.map",
-    "33.2183c46f.chunk.js.map": "/AVAT/static/js/33.2183c46f.chunk.js.map"
+    "main.9d10e9e2.css.map": "/AVAT/static/css/main.9d10e9e2.css.map",
+    "main.8791e0ed.js.map": "/AVAT/static/js/main.8791e0ed.js.map",
+    "893.e4c7e7d9.chunk.js.map": "/AVAT/static/js/893.e4c7e7d9.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.3e2a9aab.css",
-    "static/js/main.8cbbf90c.js"
+    "static/css/main.9d10e9e2.css",
+    "static/js/main.8791e0ed.js"
   ]
 }
