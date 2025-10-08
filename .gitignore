@@ -287,6 +287,11 @@ data_exports/
 test_data/
 sample_data/
 
+# Local development directory (entire directory ignored)
+local/
+!local/.gitkeep
+!local/README.md
+
 # Database dumps and exports (sensitive data)
 *.sql.gz
 *.sql.zip
