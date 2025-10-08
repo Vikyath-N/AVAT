@@ -8,32 +8,12 @@ import { AccidentRecord } from '../types';
 
 // Configure axios instance
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/v1',
+  baseURL: process.env.REACT_APP_API_BASE_URL || 'https://avat-backend.v-naradasi.workers.dev/api/v1',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
   },
 });
-
-// Add response interceptor to handle different backend response formats
-api.interceptors.response.use(
-  (response) => {
-    // Handle Cloudflare Workers format (data wrapper) vs FastAPI format
-    if (response.data && typeof response.data === 'object') {
-      // If response has 'data' field and it's wrapped, extract it for frontend compatibility
-      if (response.data.data && response.data.status) {
-        return {
-          ...response,
-          data: response.data.data
-        };
-      }
-    }
-    return response;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
 
 // Request interceptor for logging
 api.interceptors.request.use(
@@ -47,10 +27,14 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor for error handling
+// Response interceptor for logging and handling different backend response formats
 api.interceptors.response.use(
   (response) => {
     console.log(`🟢 API Response: ${response.status} ${response.config.url}`);
+    
+    // Handle Cloudflare Workers format (data wrapper) vs FastAPI format
+    // Keep the original response structure for frontend compatibility
+    // The frontend code will handle both formats
     return response;
   },
   (error) => {

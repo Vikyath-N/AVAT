@@ -60,8 +60,9 @@ const Dashboard: React.FC<DashboardProps> = ({ preferences }) => {
           accidentService.getLatestAccident()
         ]);
 
-        const stats = statsResponse.data;
-        const analytics = analyticsResponse.data;
+        // Handle both direct and nested data structures
+        const stats = statsResponse.data?.data || statsResponse.data || {};
+        const analytics = analyticsResponse.data?.data || analyticsResponse.data || {};
 
         setRealTimeData({
           totalAccidents: stats.total_accidents || 0,
