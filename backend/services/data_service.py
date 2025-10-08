@@ -23,7 +23,7 @@ class DataService:
     async def initialize(self):
         """Initialize the data service"""
         if not self.initialized:
-            from utils.database import init_database
+            from ..utils.database import init_database
             init_database()
             self.initialized = True
             logger.info("Data service initialized")

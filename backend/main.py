@@ -62,7 +62,7 @@ async def lifespan(app: FastAPI):
     # Start scheduler (Phase 3)
     global scheduler
     scheduler = AsyncIOScheduler()
-    from services.dmv_scraper_service import DMVScraperService
+    from .services.dmv_scraper_service import DMVScraperService
     svc = DMVScraperService()
     # Daily 03:00 scrape index then PDFs
     scheduler.add_job(lambda: svc.sync_index(), CronTrigger(hour=3, minute=0))

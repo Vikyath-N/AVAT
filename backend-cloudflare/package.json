@@ -2,20 +2,30 @@
   "name": "avat-backend-cloudflare",
   "version": "1.0.0",
   "description": "AVAT Backend on Cloudflare Workers",
+  "type": "module",
   "main": "src/index.js",
   "scripts": {
     "dev": "wrangler dev src/index.js",
     "deploy": "wrangler deploy",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node src/test-mcp-client.js",
+    "test:mcp": "node src/test-mcp-client.js",
+    "mcp:info": "curl -X GET https://avat-backend.vikyath.workers.dev/mcp/info",
+    "mcp:bindings": "curl -X GET https://avat-backend.vikyath.workers.dev/mcp/bindings"
   },
-  "keywords": ["cloudflare", "workers", "api", "autonomous-vehicles"],
+  "keywords": [
+    "cloudflare",
+    "workers",
+    "api",
+    "autonomous-vehicles"
+  ],
   "author": "",
   "license": "MIT",
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240902.0",
-    "wrangler": "^3.72.2"
+    "wrangler": "^4.42.1"
   },
   "dependencies": {
+    "@cloudflare/mcp-server-cloudflare": "^0.2.0",
     "@supabase/supabase-js": "^2.38.5",
     "hono": "^4.0.0"
   }

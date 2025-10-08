@@ -7,17 +7,33 @@ account_id = "e3f5eea8cbc9a489d43c2790bcf97a45"
 [env.production]
 # Set these in Cloudflare dashboard or via wrangler secret put
 # Neon PostgreSQL Database
-DATABASE_URL = "postgresql://avat_app:npg_MN95PdsCTzgy@ep-aged-leaf-adig818q.c-2.us-east-1.aws.neon.tech/avat_prod?sslmode=require"
+DATABASE_URL = "postgresql://neondb_owner:npg_ntuV0RslfA8k@ep-aged-leaf-adig818q-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
 # SUPABASE_URL = "your_supabase_url"
 # SUPABASE_ANON_KEY = "your_supabase_anon_key"
 UPSTASH_REDIS_REST_URL = "https://distinct-rooster-15123.upstash.io"
 UPSTASH_REDIS_REST_TOKEN = "ATsTAAIncDI2NDVkODQxZjE4YTg0YWVjYjQ4ZjQyMmZiZDU4NjU5NHAyMTUxMjM"
+
+# MCP Client Configuration
+# Set these via wrangler secret put
+# CLOUDFLARE_API_TOKEN = "your_api_token"
+# CLOUDFLARE_ACCOUNT_ID = "your_account_id"
 
 # Database configuration
 [[env.production.kv_namespaces]]
 binding = "AVAT_KV"
 id = "your_kv_namespace_id"
 preview_id = "your_kv_preview_id"
+
+# D1 Database for MCP server (optional)
+[[env.production.d1_databases]]
+binding = "AVAT_D1"
+database_name = "avat-d1"
+database_id = "your_d1_database_id"
+
+# R2 Storage for MCP server (optional)
+[[env.production.r2_buckets]]
+binding = "AVAT_R2"
+bucket_name = "avat-r2"
 
 # Development environment (optional)
 [env.preview]

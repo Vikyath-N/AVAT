@@ -12,12 +12,12 @@ env:
   PYTHON_VERSION: '3.11'
 
 jobs:
-  # Frontend deployment to GitHub Pages
+  # Frontend deployment to Cloudflare Pages
   deploy-frontend:
     runs-on: ubuntu-latest
-    name: Deploy Frontend to GitHub Pages
+    name: Deploy Frontend to Cloudflare Pages
     permissions:
-      contents: write  # Allow writing to repository contents
+      contents: read  # Read access for checkout
 
     steps:
     - name: Checkout 🛎️
@@ -48,22 +48,21 @@ jobs:
         REACT_APP_VERSION: 2.0.0
         REACT_APP_ENVIRONMENT: production
         REACT_APP_DEMO_MODE: false
-        REACT_APP_BASENAME: /AVAT
+        REACT_APP_BASENAME: /
         REACT_APP_ENABLE_REAL_TIME: false  # Disabled for Cloudflare Workers
         REACT_APP_ENABLE_ANALYTICS: true
         REACT_APP_ENABLE_EXPORT: true
         CI: false
 
-    - name: Add SPA 404 fallback for GitHub Pages
-      run: |
-        cp frontend/build/index.html frontend/build/404.html
-
-    - name: Deploy to GitHub Pages 🚀
-      uses: peaceiris/actions-gh-pages@v3
+    - name: Deploy to Cloudflare Pages 🚀
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./frontend/build
+      working-directory: ./frontend
+      run: |
+        # Deploy to Cloudflare Pages
+        npx wrangler pages deploy build --project-name avat-frontend
+      env:
+        CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
   # Backend deployment to Cloudflare Workers
   deploy-backend:
@@ -183,18 +182,18 @@ jobs:
       run: |
         echo "🎉 AVAT deployment completed successfully!"
         echo ""
-        echo "Frontend: https://vikyath-n.github.io/AVAT/"
+        echo "Frontend: https://avat-frontend.pages.dev/"
         echo "Backend: https://avat-backend.vikyath-n.workers.dev/"
-        echo "Documentation: https://vikyath-n.github.io/AVAT/"
+        echo "Custom Domain: https://avat.vikyath.dev/ (after DNS setup)"
         echo ""
         echo "Next steps:"
         echo "1. Verify all services are working correctly"
-        echo "2. Update DNS records if needed"
+        echo "2. Set up custom domain DNS records in Cloudflare"
         echo "3. Monitor performance and costs"
         echo "4. Test all features thoroughly"
         echo ""
         echo "Infrastructure stack:"
-        echo "- Frontend: GitHub Pages (Free)"
+        echo "- Frontend: Cloudflare Pages (Free tier)"
         echo "- Backend: Cloudflare Workers (Free tier)"
         echo "- Database: Neon PostgreSQL (Free tier)"
         echo "- Cache: Upstash Redis (Free tier)"

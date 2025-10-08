@@ -2,9 +2,13 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { createClient } from '@supabase/supabase-js';
 import { scheduledIndexSync, scheduledPDFSync } from './scheduler';
+import { CloudflareMCPClient } from './mcp-client.js';
 
 // Initialize Hono app
 const app = new Hono();
+
+// Initialize MCP Client
+let mcpClient = null;
 
 // Add CORS middleware
 app.use('/*', cors({
@@ -275,6 +279,126 @@ app.get('/api/v1/filters/options', async (c) => {
   }
 });
 
+// MCP Client endpoints
+app.get('/mcp/bindings', async (c) => {
+  try {
+    // Initialize MCP client if not already done
+    if (!mcpClient) {
+      mcpClient = new CloudflareMCPClient(c.env);
+    }
+    
+    // Get available bindings
+    const bindings = await mcpClient.getAvailableBindings();
+    return c.json({
+      success: true,
+      data: bindings,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('MCP Client error:', error);
+    return c.json({
+      error: 'MCP Client Error',
+      message: error.message,
+      timestamp: new Date().toISOString()
+    }, 500);
+  }
+});
+
+// Create KV namespace
+app.post('/mcp/kv', async (c) => {
+  try {
+    if (!mcpClient) {
+      mcpClient = new CloudflareMCPClient(c.env);
+    }
+    
+    const { name } = await c.req.json();
+    const result = await mcpClient.createKVNamespace(name);
+    
+    return c.json({
+      success: true,
+      data: result,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('KV creation error:', error);
+    return c.json({
+      error: 'KV Creation Error',
+      message: error.message,
+      timestamp: new Date().toISOString()
+    }, 500);
+  }
+});
+
+// Create D1 database
+app.post('/mcp/d1', async (c) => {
+  try {
+    if (!mcpClient) {
+      mcpClient = new CloudflareMCPClient(c.env);
+    }
+    
+    const { name } = await c.req.json();
+    const result = await mcpClient.createD1Database(name);
+    
+    return c.json({
+      success: true,
+      data: result,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('D1 creation error:', error);
+    return c.json({
+      error: 'D1 Creation Error',
+      message: error.message,
+      timestamp: new Date().toISOString()
+    }, 500);
+  }
+});
+
+// Create R2 bucket
+app.post('/mcp/r2', async (c) => {
+  try {
+    if (!mcpClient) {
+      mcpClient = new CloudflareMCPClient(c.env);
+    }
+    
+    const { name } = await c.req.json();
+    const result = await mcpClient.createR2Bucket(name);
+    
+    return c.json({
+      success: true,
+      data: result,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('R2 creation error:', error);
+    return c.json({
+      error: 'R2 Creation Error',
+      message: error.message,
+      timestamp: new Date().toISOString()
+    }, 500);
+  }
+});
+
+// MCP Client info endpoint
+app.get('/mcp/info', (c) => {
+  return c.json({
+    name: 'AVAT MCP Client',
+    version: '1.0.0',
+    description: 'Model Context Protocol client for Cloudflare Workers integration',
+    capabilities: [
+      'getAvailableBindings',
+      'createKVNamespace',
+      'createD1Database',
+      'createR2Bucket',
+      'deployWorker',
+      'getWorkerLogs',
+      'getWorkerMetrics'
+    ],
+    serverUrl: 'https://bindings.mcp.cloudflare.com/sse',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Root endpoint
 app.get('/', (c) => {
   return c.json({
@@ -283,11 +407,13 @@ app.get('/', (c) => {
     status: 'operational',
     timestamp: new Date().toISOString(),
     docs: '/api/docs',
+    mcp: '/mcp/info',
     endpoints: [
       '/api/v1/health',
       '/api/v1/accidents',
       '/api/v1/analytics',
-      '/api/v1/filters/options'
+      '/api/v1/filters/options',
+      '/mcp/info'
     ]
   });
 });

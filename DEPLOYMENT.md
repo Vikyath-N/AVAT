@@ -41,43 +41,44 @@ npm start
 
 ## 🌐 Production Deployment
 
-### GitHub Pages (Current)
+### Cloudflare Pages (Current)
 
-The application is automatically deployed to GitHub Pages via GitHub Actions using PNPM and environment-secret driven runtime config.
+The application is automatically deployed to Cloudflare Pages via GitHub Actions using PNPM and environment-secret driven runtime config.
 
-**Live URL**: https://vikyath-n.github.io/AVAT/
+**Live URL**: https://avat-frontend.pages.dev/
+**Custom Domain**: https://avat.vikyath.dev/ (after DNS setup)
 
 #### Deployment Triggers:
-- Push to `main` or `master` branch
+- Push to `main` branch
 - Pull requests validate build
 
 #### Environment Variables (GitHub Secrets):
 - `MAPBOX_TOKEN`: Mapbox public token
 - `PROD_API_BASE_URL`: e.g. https://api.avat.vikyath.dev/api/v1
 - `PROD_WS_URL`: e.g. wss://api.avat.vikyath.dev/ws
-- `GITHUB_TOKEN`: Automatically provided by GitHub (no action needed)
+- `CLOUDFLARE_API_TOKEN`: Cloudflare API token with Pages permissions
+- `CLOUDFLARE_ACCOUNT_ID`: Cloudflare account ID
 
 #### GitHub Actions Details
 
-- Workflow: `.github/workflows/deploy.yml`
+- Workflow: `.github/workflows/complete-deployment.yml`
 - Tooling: PNPM + `react-scripts` build
-- Permissions: requires `permissions: contents: write` at top-level to push to `gh-pages` branch
-- Required files: `frontend/public/index.html` must be present in repo
-- Build env injected via `env` block in the Build step (uses GitHub Secrets)
+- Project Name: `avat-frontend` (configured in Cloudflare)
+- Build Configuration:
+  - Build command: `pnpm run build`
+  - Build output directory: `build`
+  - Root directory: `frontend`
 
 Key steps:
 ```yaml
-permissions:
-  contents: write
-
 jobs:
-  build-and-deploy:
+  deploy-frontend:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
       - name: Install Dependencies 🔧
         working-directory: ./frontend
         run: pnpm install --no-frozen-lockfile
@@ -88,23 +89,47 @@ jobs:
           REACT_APP_API_BASE_URL: ${{ secrets.PROD_API_BASE_URL }}
           REACT_APP_WS_URL: ${{ secrets.PROD_WS_URL }}
           REACT_APP_MAPBOX_TOKEN: ${{ secrets.MAPBOX_TOKEN }}
+          REACT_APP_BASENAME: /
           CI: false
-      - name: Deploy to GitHub Pages 🚀
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./frontend/build
-          cname: avat.vikyath.dev
+      - name: Deploy to Cloudflare Pages 🚀
+        run: npx wrangler pages deploy build --project-name avat-frontend
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 ```
 
 ### 🔄 Manual Deployment
 
 ```bash
-# Build and deploy frontend (gh-pages)
+# Build and deploy frontend to Cloudflare Pages
 cd frontend
 pnpm run build
-pnpm run deploy
+
+# Deploy to Cloudflare Pages (requires CLOUDFLARE_API_TOKEN)
+npx wrangler pages deploy build --project-name avat-frontend
 ```
+
+### 🌐 Custom Domain Setup
+
+To use your custom domain `avat.vikyath.dev` instead of the default `pages.dev` URL:
+
+1. **Add Custom Domain in Cloudflare Pages Dashboard:**
+   - Go to Cloudflare Pages → avat-frontend → Custom domains
+   - Click "Set up custom domain"
+   - Enter: `avat.vikyath.dev`
+   - Choose "Add domain"
+
+2. **Update DNS Records:**
+   - In your DNS provider, add CNAME record:
+   - Name: `avat.vikyath.dev`
+   - Value: `avat-frontend.pages.dev`
+   - TTL: 300 seconds
+
+3. **Environment Variables Update:**
+   - Update `REACT_APP_BASENAME` to `/` (no longer needs `/AVAT`)
+   - The app will be available at both:
+     - https://avat-frontend.pages.dev/
+     - https://avat.vikyath.dev/
 
 ## 🏗️ Full Stack Deployment Options
 
@@ -197,8 +222,10 @@ export const trackEvent = (eventName: string, properties: any) => {
 ### Frontend Security:
 - ✅ Environment variables properly configured
 - ✅ No sensitive data in client bundle
-- ✅ HTTPS enforced on GitHub Pages
+- ✅ HTTPS enforced on Cloudflare Pages (automatic)
 - ✅ Content Security Policy headers
+- ✅ DDoS protection via Cloudflare
+- ✅ Global CDN for performance and security
 
 ### Backend Security (Future):
 - [ ] JWT authentication
@@ -257,7 +284,11 @@ Additional CI gotchas:
 gh run list
 gh run view <run-id>
 
-# Verify GitHub Pages settings
+# Check Cloudflare Pages deployment
+npx wrangler pages deployment list --project-name avat-frontend
+
+# Verify Cloudflare Pages project settings
+npx wrangler pages project list
 ```
 
 ## 📞 Support
@@ -270,4 +301,11 @@ For deployment issues:
 ---
 
 **Last Updated**: September 2025
-**Version**: 2.0.1
+**Version**: 2.1.0
+
+---
+**Recent Changes**:
+- ✅ Migrated from GitHub Pages to Cloudflare Pages for superior performance
+- ✅ Updated deployment pipeline for Cloudflare Pages integration
+- ✅ Enhanced security with Cloudflare DDoS protection and global CDN
+- ✅ Improved build configuration for Pages deployment
