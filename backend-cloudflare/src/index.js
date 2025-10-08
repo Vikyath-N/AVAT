@@ -39,8 +39,8 @@ app.use('/*', cors({
 
 // Environment variables (set in Cloudflare dashboard or wrangler.toml)
 const DATABASE_URL = 'YOUR_DATABASE_URL';
-const UPSTASH_REDIS_REST_URL = 'https://distinct-rooster-15123.upstash.io';
-const UPSTASH_REDIS_REST_TOKEN = 'ATsTAAIncDI2NDVkODQxZjE4YTg0YWVjYjQ4ZjQyMmZiZDU4NjU5NHAyMTUxMjM';
+const UPSTASH_REDIS_REST_URL = process.env.UPSTASH_REDIS_REST_URL || 'https://your-redis.upstash.io';
+const UPSTASH_REDIS_REST_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN || 'your_upstash_token';
 
 // Helper function to query Upstash Redis
 async function redisGet(key) {
