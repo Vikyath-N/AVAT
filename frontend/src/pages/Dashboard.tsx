@@ -498,7 +498,7 @@ const Dashboard: React.FC<DashboardProps> = ({ preferences }) => {
             <MapPin className="w-5 h-5 text-tesla-green" />
           </div>
           <div className="space-y-3">
-            {cityData.map((city, index) => (
+            {cityData.map((city: {name: string; accidents: number; type: string}, index: number) => (
               <div key={city.name} className="flex items-center justify-between p-3 bg-dark-card/30 rounded-lg">
                 <div className="flex items-center space-x-3">
                   <div className="w-8 h-8 bg-tesla-blue/20 rounded-lg flex items-center justify-center text-sm font-bold">
