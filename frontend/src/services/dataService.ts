@@ -5,22 +5,22 @@
 
 import { accidentService, analyticsService, systemService } from './api';
 import { mockAccidents, mockMapData, mockAnalytics } from './mockData';
-import { AccidentRecord } from '../types';
+// import { AccidentRecord } from '../types';
 
 const isDemoMode = process.env.REACT_APP_DEMO_MODE === 'true';
 
 /**
  * Check if backend API is available
  */
-const checkApiHealth = async (): Promise<boolean> => {
-  try {
-    await systemService.healthCheck();
-    return true;
-  } catch (error) {
-    console.warn('🟡 Backend API not available, using mock data');
-    return false;
-  }
-};
+// const checkApiHealth = async (): Promise<boolean> => {
+//   try {
+//     await systemService.healthCheck();
+//     return true;
+//   } catch (error) {
+//     console.warn('🟡 Backend API not available, using mock data');
+//     return false;
+//   }
+// };
 
 /**
  * Hybrid service that tries API first, falls back to mock data

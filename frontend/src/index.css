@@ -28,64 +28,178 @@ html {
 }
 
 body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   background-color: var(--tesla-black);
   color: var(--tesla-white);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'cv11', 'ss01';
+  font-variant-numeric: tabular-nums;
+  text-rendering: optimizeLegibility;
 }
 
-/* Custom scrollbar */
+/* Premium Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--tesla-dark-gray);
+  background: rgba(13, 13, 13, 0.3);
+  border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--tesla-medium-gray);
-  border-radius: 4px;
+  background: linear-gradient(180deg, rgba(45, 45, 45, 0.8), rgba(45, 45, 45, 0.6));
+  border-radius: 10px;
+  border: 2px solid rgba(13, 13, 13, 0.3);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--tesla-light-gray);
+  background: linear-gradient(180deg, rgba(10, 132, 255, 0.5), rgba(10, 132, 255, 0.3));
 }
 
-/* Tesla-style button components */
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(45, 45, 45, 0.8) rgba(13, 13, 13, 0.3);
+}
+
+/* Modern 2025 Design System Components */
 @layer components {
+  /* Premium Buttons */
   .btn-tesla {
-    @apply px-6 py-3 rounded-none border-2 border-white bg-transparent text-white font-medium transition-all duration-300 hover:bg-white hover:text-black focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-black;
+    @apply px-6 py-3 rounded-xl border border-dark-border bg-dark-card/50 text-white font-medium 
+           backdrop-blur-xl transition-all duration-300 
+           hover:bg-dark-card hover:border-dark-muted hover:shadow-glass
+           active:scale-95
+           focus:outline-none focus:ring-2 focus:ring-tesla-blue/50 focus:ring-offset-2 focus:ring-offset-black;
   }
 
   .btn-tesla-primary {
-    @apply px-6 py-3 rounded-none bg-tesla-blue text-white font-medium transition-all duration-300 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-tesla-blue focus:ring-offset-2 focus:ring-offset-black;
+    @apply px-6 py-3 rounded-xl bg-gradient-to-r from-tesla-blue to-accent-info text-white font-semibold 
+           shadow-glow-blue backdrop-blur-xl transition-all duration-300 
+           hover:shadow-glow-blue hover:scale-[1.02]
+           active:scale-95
+           focus:outline-none focus:ring-2 focus:ring-tesla-blue/50 focus:ring-offset-2 focus:ring-offset-black;
   }
 
   .btn-tesla-danger {
-    @apply px-6 py-3 rounded-none bg-tesla-red text-white font-medium transition-all duration-300 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-tesla-red focus:ring-offset-2 focus:ring-offset-black;
+    @apply px-6 py-3 rounded-xl bg-gradient-to-r from-accent-danger to-accent-danger-soft text-white font-semibold 
+           shadow-glow-red backdrop-blur-xl transition-all duration-300 
+           hover:shadow-glow-red hover:scale-[1.02]
+           active:scale-95
+           focus:outline-none focus:ring-2 focus:ring-accent-danger/50 focus:ring-offset-2 focus:ring-offset-black;
   }
 
+  /* Glass Morphism Cards */
   .card-tesla {
-    @apply bg-dark-surface border border-dark-border rounded-lg p-6 shadow-tesla backdrop-blur-sm;
+    @apply relative bg-dark-card/30 backdrop-blur-2xl backdrop-saturate-180 border border-dark-border/50 
+           rounded-2xl p-6 shadow-glass overflow-hidden
+           before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/5 before:to-transparent before:opacity-0 
+           hover:before:opacity-100 before:transition-opacity before:duration-500;
   }
 
+  .card-tesla-hover {
+    @apply card-tesla hover:border-dark-muted/50 hover:shadow-glass-lg transition-all duration-300 hover:scale-[1.01];
+  }
+
+  /* Premium Glass Effect */
   .glass-effect {
-    @apply bg-black/20 backdrop-blur-md border border-white/10;
+    @apply bg-dark-card/20 backdrop-blur-2xl backdrop-saturate-180 border border-white/5 shadow-inner-glow;
   }
 
+  .glass-effect-strong {
+    @apply bg-dark-card/40 backdrop-blur-3xl backdrop-saturate-180 border border-white/10 shadow-glass;
+  }
+
+  /* Modern Gradients */
   .text-gradient {
-    @apply bg-gradient-to-r from-tesla-blue to-tesla-green bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-tesla-blue via-accent-purple to-tesla-green bg-clip-text text-transparent animate-gradient bg-[length:200%_auto];
   }
 
+  .text-gradient-blue {
+    @apply bg-gradient-to-r from-tesla-blue to-accent-info bg-clip-text text-transparent;
+  }
+
+  .bg-gradient-mesh {
+    @apply bg-gradient-to-br from-tesla-blue/10 via-accent-purple/10 to-tesla-green/10 animate-gradient bg-[length:200%_200%];
+  }
+
+  /* Glow Effects */
   .glow-effect {
-    @apply shadow-glow-green animate-glow;
+    @apply shadow-glow-green animate-glow-pulse;
   }
 
+  .glow-effect-blue {
+    @apply shadow-glow-blue animate-glow-pulse;
+  }
+
+  .glow-effect-static {
+    @apply shadow-glow-blue;
+  }
+
+  /* Loading & Shimmer */
   .loading-shimmer {
-    @apply animate-pulse bg-gradient-to-r from-dark-surface via-dark-card to-dark-surface bg-[length:200%_100%];
+    @apply relative overflow-hidden bg-dark-card/30 
+           before:absolute before:inset-0 before:bg-shimmer before:animate-shimmer;
+  }
+
+  .skeleton-modern {
+    @apply animate-pulse bg-gradient-to-r from-dark-card/30 via-dark-card/50 to-dark-card/30 rounded-xl;
+  }
+
+  /* Stat Cards */
+  .stat-card {
+    @apply card-tesla group cursor-pointer hover:bg-dark-card/50 transition-all duration-300;
+  }
+
+  .stat-value {
+    @apply text-4xl font-bold tracking-tight bg-gradient-to-br from-white to-dark-text-secondary bg-clip-text;
+  }
+
+  .stat-label {
+    @apply text-sm font-medium text-dark-muted group-hover:text-dark-muted-light transition-colors;
+  }
+
+  /* Interactive Elements */
+  .interactive-hover {
+    @apply transition-all duration-300 hover:scale-[1.02] active:scale-95 cursor-pointer;
+  }
+
+  .interactive-glow {
+    @apply transition-all duration-300 hover:shadow-glow-blue hover:border-tesla-blue/50;
+  }
+
+  /* Dividers */
+  .divider-gradient {
+    @apply h-px bg-gradient-to-r from-transparent via-dark-border to-transparent;
+  }
+
+  /* Badges */
+  .badge-modern {
+    @apply px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-xl border;
+  }
+
+  .badge-success {
+    @apply badge-modern bg-accent-success/10 border-accent-success/30 text-accent-success;
+  }
+
+  .badge-warning {
+    @apply badge-modern bg-accent-warning/10 border-accent-warning/30 text-accent-warning;
+  }
+
+  .badge-danger {
+    @apply badge-modern bg-accent-danger/10 border-accent-danger/30 text-accent-danger;
+  }
+
+  .badge-info {
+    @apply badge-modern bg-accent-info/10 border-accent-info/30 text-accent-info;
   }
 }
 
@@ -129,19 +243,39 @@ body {
   border-radius: 4px !important;
 }
 
-/* Chart styles */
+/* Modern Chart Styles */
 .recharts-cartesian-grid-horizontal line,
 .recharts-cartesian-grid-vertical line {
-  stroke: var(--tesla-medium-gray) !important;
+  stroke: #2d2d2d !important;
   stroke-opacity: 0.3 !important;
+  stroke-dasharray: 3 3 !important;
 }
 
 .recharts-text {
-  fill: var(--tesla-white) !important;
+  fill: #8e8e93 !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
 }
 
 .recharts-legend-item-text {
-  color: var(--tesla-white) !important;
+  color: #e5e5e5 !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+}
+
+.recharts-tooltip-wrapper {
+  outline: none !important;
+}
+
+.recharts-default-tooltip {
+  background-color: rgba(26, 26, 26, 0.95) !important;
+  border: 1px solid #2d2d2d !important;
+  border-radius: 12px !important;
+  backdrop-filter: blur(20px) !important;
+}
+
+.recharts-surface {
+  overflow: visible !important;
 }
 
 /* Custom animations */

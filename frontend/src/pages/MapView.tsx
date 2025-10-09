@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { UserPreferences, AccidentRecord, MapViewport } from '../types';
 import { MapDataResponse } from '../services/api';
-import { dataService, getDemoInfo } from '../services/dataService';
+import { dataService } from '../services/dataService';
 
 interface MapViewProps {
   preferences: UserPreferences;

@@ -73,7 +73,37 @@ function App() {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         {/* Use dynamic basename so routing works on localhost and GitHub Pages (/AVAT) */}
-        <Router basename={(process.env.REACT_APP_BASENAME as string) || (process.env.PUBLIC_URL ? new URL(process.env.PUBLIC_URL).pathname : '/') }>
+        <Router 
+          basename={(() => {
+            // Use explicit basename if set
+            if (process.env.REACT_APP_BASENAME) {
+              return process.env.REACT_APP_BASENAME;
+            }
+            
+            // In development mode, always use root path
+            if (process.env.NODE_ENV === 'development') {
+              return '/';
+            }
+            
+            // Try to extract pathname from PUBLIC_URL safely for production
+            if (process.env.PUBLIC_URL) {
+              try {
+                const url = new URL(process.env.PUBLIC_URL);
+                return url.pathname;
+              } catch (error) {
+                console.warn('Invalid PUBLIC_URL, falling back to /:', process.env.PUBLIC_URL);
+                return '/';
+              }
+            }
+            
+            // Default fallback
+            return '/';
+          })()}
+          future={{
+            v7_startTransition: true,
+            v7_relativeSplatPath: true
+          }}
+        >
           <div className="min-h-screen bg-dark-bg text-dark-text">
             {/* Background Pattern */}
             <div className="fixed inset-0 bg-mesh-pattern opacity-5 pointer-events-none" />

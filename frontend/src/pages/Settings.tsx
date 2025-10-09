@@ -10,8 +10,7 @@ import {
   Database,
   Wifi,
   Shield,
-  Palette,
-  Globe
+  Palette
 } from 'lucide-react';
 import { UserPreferences } from '../types';
 

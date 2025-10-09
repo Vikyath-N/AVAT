@@ -5,10 +5,7 @@ import {
   Car, 
   MapPin, 
   AlertTriangle,
-  Clock,
-  Filter,
   Download,
-  Calendar,
   BarChart3
 } from 'lucide-react';
 import {
@@ -31,7 +28,6 @@ import {
   PolarAngleAxis,
   PolarRadiusAxis,
   Radar,
-  Treemap
 } from 'recharts';
 import { UserPreferences } from '../types';
 

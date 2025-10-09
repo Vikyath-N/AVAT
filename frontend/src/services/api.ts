@@ -88,7 +88,7 @@ export interface MapDataResponse {
 export const accidentService = {
   // Get paginated accidents with filters
   getAccidents: async (params?: AccidentQueryParams): Promise<AccidentResponse> => {
-    const response = await api.get('/accidents', { params });
+    const response = await api.get('/accidents/', { params });
     return response.data;
   },
 
@@ -120,7 +120,7 @@ export const accidentService = {
 
   // Get the most recent accident by id desc
   getLatestAccident: async (): Promise<AccidentRecord | null> => {
-    const response = await api.get('/accidents', {
+    const response = await api.get('/accidents/', {
       params: { page: 1, limit: 1, sort_by: 'id', sort_order: 'desc' }
     });
     const payload = response.data;

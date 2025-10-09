@@ -60,7 +60,7 @@ const MapView: React.FC<MapViewProps> = ({ preferences }) => {
       }
       return true;
     });
-  }, [selectedCompanies]);
+  }, [accidents, selectedCompanies]);
 
   const handleMarkerClick = useCallback((accident: AccidentRecord) => {
     setSelectedAccident(accident);
